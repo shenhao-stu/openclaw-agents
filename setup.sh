@@ -415,17 +415,14 @@ AJSON
   agents_json+=']'
 
   # Build bindings array — bind each agent to the group
+  # IMPORTANT: main agent binding comes FIRST so it handles
+  # non-@mentioned messages. Sub-agents only respond to @mentions.
   # See: https://docs.openclaw.ai/concepts/multi-agent#routing-rules-how-messages-pick-an-agent
-  local bindings_json='['
-  first=true
+  local bindings_json
+  bindings_json='[{"agentId": "main", "match": {"channel": "'"${CHANNEL}"'", "peer": {"kind": "group", "id": "'"${GROUP_ID}"'"}}}'
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
-    if [[ "${first}" == true ]]; then
-      first=false
-    else
-      bindings_json+=','
-    fi
-    bindings_json+="$(cat <<BJSON
+    bindings_json+=",$(cat <<BJSON
 {
       "agentId": "${id}",
       "match": {
@@ -462,7 +459,7 @@ BJSON
     # 5. Deep merge channel config (preserving existing keys like appId, appSecret)
     # 6. Set groupChat historyLimit if not already set
     local our_ids
-    our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s .)"
+    our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s '. + ["main"]')"
 
     jq --argjson new_agents "${agents_json}" \
        --argjson new_bindings "${bindings_json}" \
