@@ -2,26 +2,9 @@
     "agents": {
         "list": [
             {
-                "id": "main",
-                "name": "🐾 OpenClaw",
-                "workspace": "~/.openclaw/workspace-main",
-                "model": "zai/glm-5",
-                "default": true,
-                "identity": {
-                    "name": "🐾 OpenClaw"
-                },
-                "groupChat": {
-                    "mentionPatterns": [
-                        "@openclaw",
-                        "openclaw"
-                    ],
-                    "historyLimit": 50
-                }
-            },
-            {
                 "id": "planner",
                 "name": "🧠 Planner",
-                "workspace": "~/.openclaw/workspace-planner",
+                "workspace": "~/.openclaw/agents/planner",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "🧠 Planner"
@@ -34,26 +17,9 @@
                     "historyLimit": 50
                 }
             }
-        ],
-        "defaults": {
-            "sandbox": {
-                "mode": "non-main",
-                "scope": "session",
-                "workspaceAccess": "none"
-            }
-        }
+        ]
     },
     "bindings": [
-        {
-            "agentId": "main",
-            "match": {
-                "channel": "telegram",
-                "peer": {
-                    "kind": "group",
-                    "id": "-1001234567890"
-                }
-            }
-        },
         {
             "agentId": "planner",
             "match": {

@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
   <br/>
-  <img src="https://img.shields.io/badge/version-1.1.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
   <img src="https://img.shields.io/badge/channels-feishu%20%7C%20whatsapp%20%7C%20telegram%20%7C%20discord-purple?style=flat-square" alt="Channels">
@@ -99,7 +99,10 @@ Ask the user these questions:
    - Discord: guild ID
 3. **Which LLM model?** (default: `zai/glm-5`) → `--model <MODEL>`
    - Want different models per agent? → `--model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7'`
-4. **Do you need a session ID for group routing?** → `--session-id <ID>` (optional)
+4. **需要 @mention 才回复吗？** → `--require-mention true|false`
+   - `true`（默认）：群里必须 @机器人 才会回复，不 @ 不会触发
+   - `false`：机器人自动响应所有消息，无需 @
+5. **Do you need a session ID for group routing?** → `--session-id <ID>` (optional)
 
 #### Step 2: Clone and Run Setup
 
@@ -112,17 +115,17 @@ chmod +x setup.sh
 
 **Examples:**
 - Feishu group: `./setup.sh --channel feishu --group-id oc_b1c331592eaa36d06a7e5df05d08a890`
-- Custom model: `./setup.sh --model ollama/kimi-k2.5:cloud --channel feishu --group-id oc_xxx`
+- No @mention required: `./setup.sh --require-mention false --channel feishu --group-id oc_xxx`
 - Per-agent models: `./setup.sh --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' --channel feishu --group-id oc_xxx`
 - Agents only (no channel): `./setup.sh --skip-bindings`
 - Dry-run preview: `./setup.sh --dry-run --channel feishu --group-id oc_xxx`
 
 The script will:
 1. ✅ Verify `openclaw` CLI is installed
-2. 🤖 Create 8 sub-agents via `openclaw agents add`
+2. 🤖 Create 8 sub-agents via `openclaw agents add` (each with independent workspace)
 3. 🎨 Set emoji identities via `openclaw agents set-identity`
-4. 📝 Deploy `soul.md` / `agent.md` / `user.md` to each workspace
-5. 🔗 Configure `openclaw.json` with channel bindings
+4. 📝 Deploy `SOUL.md` / `AGENT.md` / `USER.md` / `AGENTS.md` (UPPERCASE, merged from templates)
+5. 🔗 Configure `openclaw.json` with channel bindings (no sandbox)
 6. ✅ Verify the entire setup
 
 #### Step 3: Verify Setup
@@ -267,7 +270,22 @@ OpenClaw uses a three-tier access control model for groups:
 
 ### Mention Gating
 
-In groups, agents **only respond when @mentioned** (default: `requireMention: true`). Each agent can have custom `mentionPatterns`:
+You can choose whether agents require `@mention` to respond in groups:
+
+| Setting | Behavior |
+|---------|----------|
+| `requireMention: true` (**default**) | Agents only respond when @mentioned. Messages without @ are stored for context but don't trigger a reply. |
+| `requireMention: false` | Agents auto-respond to all group messages. No @mention needed. |
+
+```bash
+# Default: require @mention
+./setup.sh --channel feishu --group-id oc_xxx
+
+# Auto-respond without @mention
+./setup.sh --require-mention false --channel feishu --group-id oc_xxx
+```
+
+Each agent has unique `mentionPatterns`:
 
 ```jsonc
 {
@@ -275,11 +293,10 @@ In groups, agents **only respond when @mentioned** (default: `requireMention: tr
     "list": [
       {
         "id": "planner",
-        "name": "🧠 Planner",
-        // ...
+        "name": "💡 Planner",
         "groupChat": {
-          "mentionPatterns": ["@planner", "planner", "@Planner"],  // case-insensitive regex
-          "historyLimit": 50   // context window for group messages
+          "mentionPatterns": ["@planner", "planner", "@Planner"],
+          "historyLimit": 50
         }
       }
     ]
@@ -287,7 +304,7 @@ In groups, agents **only respond when @mentioned** (default: `requireMention: tr
 }
 ```
 
-> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 🧠 Planner agent will respond.
+> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 💡 Planner agent will respond.
 
 Messages that don't match any mention pattern are **stored for context** but don't trigger a reply — this allows agents to follow the conversation passively.
 
@@ -307,25 +324,18 @@ agent:<agentId>:<channel>:group:<groupId>
 
 Telegram forum topics add `:topic:<threadId>` for per-topic isolation.
 
-### Sandbox & Tool Restrictions
+### Workspace & Tool Restrictions
 
-By default, the setup script configures **sandbox isolation for group sessions**:
+Each sub-agent has its **own independent workspace** (no Docker sandbox). The setup script deploys UPPERCASE workspace files:
 
-```jsonc
-{
-  "agents": {
-    "defaults": {
-      "sandbox": {
-        "mode": "non-main",         // groups are sandboxed
-        "scope": "session",          // one container per group
-        "workspaceAccess": "none"    // no host filesystem access
-      }
-    }
-  }
-}
-```
+| File | Content |
+|------|---------|
+| `SOUL.md` | Merged: `SOUL_raw.md` (generic behaviors) + agent-specific `soul.md` (identity) |
+| `USER.md` | Merged: `USER.md` (template) + agent-specific `user.md` (context) |
+| `AGENT.md` | Agent configuration with model settings |
+| `AGENTS.md` | Workspace conventions (from repo root) |
 
-You can also restrict tools per group or per sender:
+You can restrict tools per group or per sender:
 
 ```jsonc
 {
@@ -492,11 +502,12 @@ openclaw-agents/
 | `--session-id` | Session ID for group routing | None |
 | `--model` | Default LLM model for all agents | `zai/glm-5` |
 | `--model-map` | Per-agent model overrides (`id=model,...`) | None |
+| `--require-mention` | Require @mention to respond in groups (`true`/`false`) | `true` |
 | `--skip-bindings` | Skip channel binding setup | `false` |
 | `--dry-run` | Preview commands without executing | `false` |
 | `-h, --help` | Show help | — |
 
-> 🛡️ **Safe Merge**: The setup script **appends** sub-agents to your existing `openclaw.json`. It will never overwrite your main agent, auth, models, plugins, or gateway settings. A backup is created automatically before any changes.
+> 🛡️ **Safe Merge**: The setup script **appends** sub-agents to your existing `openclaw.json`. Main agent is implicit (uses `agents.defaults`). No sandbox — each agent has its own workspace. A backup is created automatically.
 
 ### OpenClaw Commands
 

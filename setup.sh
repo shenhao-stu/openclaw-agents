@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  OpenClaw Agents — One-Command Multi-Agent Setup
+#  OpenClaw Agents — One-Command Multi-Agent Setup  (v1.2.0)
 # ============================================================
 #  Usage:
 #    ./setup.sh                          # Interactive setup
@@ -15,13 +15,14 @@
 #    1. Verify openclaw CLI is installed
 #    2. Create all sub-agents with dedicated workspaces
 #    3. Set visual identities for each agent
-#    4. Deploy soul.md / agent.md / user.md into each workspace
+#    4. Deploy SOUL.md / AGENT.md / USER.md / AGENTS.md into each workspace
 #    5. Configure openclaw.json with routing bindings
 #    6. Verify the setup
 #
 #  ⚠️ SAFE MERGE: This script APPENDS sub-agents to your existing
-#  config. It will NOT overwrite your main agent, existing agents,
-#  models, auth, plugins, or any other settings.
+#  config. It will NOT overwrite your main agent, other agents,
+#  auth, models, plugins, or any other settings.
+#  No sandbox is used — each sub-agent has its own workspace.
 # ============================================================
 
 set -euo pipefail
@@ -35,7 +36,7 @@ MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 DIM='\033[2m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # ── Logging Helpers ─────────────────────────────────────────
 info()    { echo -e "${BLUE}ℹ${NC}  $*"; }
@@ -44,13 +45,13 @@ warn()    { echo -e "${YELLOW}⚠${NC}  $*"; }
 error()   { echo -e "${RED}✖${NC}  $*" >&2; }
 step()    { echo -e "\n${MAGENTA}▸${NC} ${BOLD}$*${NC}"; }
 banner()  {
-  echo -e ""
+  echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║${NC}  ${BOLD}🐾 OpenClaw Multi-Agent Setup${NC}                    ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${BOLD}🐾 OpenClaw Multi-Agent Setup${NC}  v1.2.0          ${CYAN}║${NC}"
   echo -e "${CYAN}║${NC}  ${DIM}One-command fleet initialization${NC}                 ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${DIM}Safe merge — your existing config is preserved${NC}   ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${DIM}Safe merge · No sandbox · Independent workspaces${NC}${CYAN}║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════════╝${NC}"
-  echo -e ""
+  echo ""
 }
 
 # ── Constants ───────────────────────────────────────────────
@@ -58,7 +59,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="${SCRIPT_DIR}/.agents"
 OPENCLAW_CONFIG="${HOME}/.openclaw/openclaw.json"
 DEFAULT_MODEL="zai/glm-5"
-VERSION="1.1.0"
 
 # Agent definitions: id|name|emoji|role
 CORE_AGENTS=(
@@ -77,33 +77,36 @@ CHANNEL=""
 GROUP_ID=""
 SESSION_ID=""
 MODEL="${DEFAULT_MODEL}"
-MODEL_MAP=""        # Per-agent model overrides: "planner=X,coder=Y"
+MODEL_MAP=""
 SKIP_BINDINGS=false
 DRY_RUN=false
+REQUIRE_MENTION=""  # will be asked interactively if empty
 
 # ── Parse Arguments ─────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --channel)      CHANNEL="$2";      shift 2 ;;
-    --group-id)     GROUP_ID="$2";     shift 2 ;;
-    --session-id)   SESSION_ID="$2";   shift 2 ;;
-    --model)        MODEL="$2";        shift 2 ;;
-    --model-map)    MODEL_MAP="$2";    shift 2 ;;
-    --skip-bindings) SKIP_BINDINGS=true; shift ;;
-    --dry-run)      DRY_RUN=true;      shift ;;
+    --channel)         CHANNEL="$2";         shift 2 ;;
+    --group-id)        GROUP_ID="$2";        shift 2 ;;
+    --session-id)      SESSION_ID="$2";      shift 2 ;;
+    --model)           MODEL="$2";           shift 2 ;;
+    --model-map)       MODEL_MAP="$2";       shift 2 ;;
+    --require-mention) REQUIRE_MENTION="$2"; shift 2 ;;
+    --skip-bindings)   SKIP_BINDINGS=true;   shift ;;
+    --dry-run)         DRY_RUN=true;         shift ;;
     -h|--help)
       echo "Usage: ./setup.sh [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --channel CHANNEL    Channel type (feishu|whatsapp|telegram|discord|slack)"
-      echo "  --group-id ID        Group/chat ID for channel binding"
-      echo "  --session-id ID      Session ID for channel group routing"
-      echo "  --model MODEL        Default model for ALL agents (default: ${DEFAULT_MODEL})"
-      echo "  --model-map MAP      Per-agent model overrides (comma-separated)"
-      echo "                       Example: planner=zai/glm-5,coder=ollama/kimi-k2.5:cloud"
-      echo "  --skip-bindings      Skip channel binding configuration"
-      echo "  --dry-run            Preview commands without executing"
-      echo "  -h, --help           Show this help message"
+      echo "  --channel CHANNEL      Channel type (feishu|whatsapp|telegram|discord|slack)"
+      echo "  --group-id ID          Group/chat ID for channel binding"
+      echo "  --session-id ID        Session ID for channel group routing"
+      echo "  --model MODEL          Default model for ALL agents (default: ${DEFAULT_MODEL})"
+      echo "  --model-map MAP        Per-agent model overrides (comma-separated)"
+      echo "                         Example: planner=zai/glm-5,coder=ollama/kimi-k2.5:cloud"
+      echo "  --require-mention BOOL Whether agents require @mention to respond in group (true|false)"
+      echo "  --skip-bindings        Skip channel binding configuration"
+      echo "  --dry-run              Preview commands without executing"
+      echo "  -h, --help             Show this help message"
       echo ""
       echo "Model Configuration:"
       echo "  By default, all agents use ${DEFAULT_MODEL}."
@@ -112,26 +115,26 @@ while [[ $# -gt 0 ]]; do
       echo "  --model-map takes priority over --model for listed agents."
       echo ""
       echo "Examples:"
-      echo "  # All agents use zai/glm-5 (default)"
+      echo "  # Default (all zai/glm-5)"
       echo "  ./setup.sh --channel feishu --group-id oc_xxx"
       echo ""
-      echo "  # All agents use a custom model"
+      echo "  # Custom model for all"
       echo "  ./setup.sh --model ollama/kimi-k2.5:cloud --channel feishu --group-id oc_xxx"
       echo ""
-      echo "  # Different models per agent"
+      echo "  # Per-agent models"
       echo "  ./setup.sh --model zai/glm-5 \\"
       echo "    --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' \\"
       echo "    --channel feishu --group-id oc_xxx"
       echo ""
-      echo "⚠️  SAFE MERGE: This script appends sub-agents to your existing"
-      echo "   openclaw.json. It will NOT overwrite your main agent or other settings."
+      echo "  # No @mention required (bot auto-responds)"
+      echo "  ./setup.sh --require-mention false --channel feishu --group-id oc_xxx"
       exit 0
       ;;
     *) error "Unknown option: $1"; exit 1 ;;
   esac
 done
 
-# ── Parse model map into associative array ──────────────────
+# ── Parse model map ─────────────────────────────────────────
 declare -A AGENT_MODELS
 if [[ -n "${MODEL_MAP}" ]]; then
   IFS=',' read -ra MAP_ENTRIES <<< "${MODEL_MAP}"
@@ -142,7 +145,6 @@ if [[ -n "${MODEL_MAP}" ]]; then
   done
 fi
 
-# ── Get model for an agent ──────────────────────────────────
 get_model() {
   local agent_id="$1"
   if [[ -n "${AGENT_MODELS[${agent_id}]+x}" ]]; then
@@ -165,16 +167,14 @@ run() {
 preflight() {
   step "Preflight checks"
 
-  # Check openclaw CLI
   if ! command -v openclaw &>/dev/null; then
     error "openclaw CLI not found."
     echo -e "  Install it with: ${CYAN}npm install -g openclaw@latest${NC}"
     echo -e "  Then run:        ${CYAN}openclaw onboard --install-daemon${NC}"
     exit 1
   fi
-  success "openclaw CLI found: $(openclaw --version 2>/dev/null || echo 'installed')"
+  success "openclaw CLI found"
 
-  # Check that agent source files exist
   if [[ ! -d "${AGENTS_DIR}" ]]; then
     error "Agent source directory not found: ${AGENTS_DIR}"
     error "Please run this script from the repository root."
@@ -182,20 +182,19 @@ preflight() {
   fi
   success "Agent source files found"
 
-  # Check jq (needed for safe JSON merging)
   if ! command -v jq &>/dev/null; then
     warn "jq not found — JSON config will use append-only mode."
     warn "Install jq for safe config merging: https://jqlang.github.io/jq/download/"
   fi
 
-  # Backup existing config
+  # Backup
   if [[ -f "${OPENCLAW_CONFIG}" ]]; then
     local backup="${OPENCLAW_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)"
     cp "${OPENCLAW_CONFIG}" "${backup}"
     success "Existing config backed up to: ${backup}"
   fi
 
-  # Show model configuration
+  # Show model config
   info "Default model: ${BOLD}${MODEL}${NC}"
   if [[ -n "${MODEL_MAP}" ]]; then
     info "Per-agent overrides:"
@@ -241,9 +240,14 @@ set_identities() {
   done
 }
 
-# ── Deploy Workspace Files ──────────────────────────────────
+# ── Deploy Workspace Files (UPPERCASE) ──────────────────────
 deploy_workspace_files() {
-  step "Deploying workspace files (soul.md / agent.md / user.md)"
+  step "Deploying workspace files (SOUL.md / AGENT.md / USER.md / AGENTS.md)"
+
+  # ── Source raw templates from repo root ──
+  local raw_soul="${SCRIPT_DIR}/SOUL_raw.md"
+  local raw_agents="${SCRIPT_DIR}/AGENTS.md"
+  local raw_user="${SCRIPT_DIR}/USER.md"
 
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
@@ -251,15 +255,36 @@ deploy_workspace_files() {
     local agent_model
     agent_model="$(get_model "${id}")"
 
-    # Ensure workspace directory exists
     mkdir -p "${workspace}"
 
-    # soul.md should already exist from the repository
-    if [[ -f "${workspace}/soul.md" ]]; then
-      success "${id}/soul.md ✓ (exists)"
+    # ── SOUL.md: Merge raw template + agent-specific soul ────
+    # The agent-specific soul.md (lowercase) from the repo is the
+    # primary identity. We prepend the raw SOUL template (generic
+    # behaviors) above it.
+    local src_soul="${workspace}/soul.md"
+    local dst_soul="${workspace}/SOUL.md"
+
+    if [[ -f "${src_soul}" ]]; then
+      if [[ -f "${raw_soul}" ]]; then
+        # Merge: raw template first, then agent-specific soul
+        {
+          cat "${raw_soul}"
+          echo ""
+          echo "---"
+          echo ""
+          cat "${src_soul}"
+        } > "${dst_soul}"
+        success "${id}/SOUL.md ✓ (merged: SOUL_raw.md + soul.md)"
+      else
+        cp "${src_soul}" "${dst_soul}"
+        success "${id}/SOUL.md ✓ (from agent soul.md)"
+      fi
     else
-      warn "${id}/soul.md not found — creating placeholder"
-      cat > "${workspace}/soul.md" << SOUL
+      warn "${id}/SOUL.md not found — creating from template"
+      if [[ -f "${raw_soul}" ]]; then
+        cp "${raw_soul}" "${dst_soul}"
+      else
+        cat > "${dst_soul}" << SOUL
 # ${emoji} OpenClaw · ${name}
 
 ## Identity
@@ -271,35 +296,35 @@ Your role: ${role}
 - Collaborate effectively with other agents
 - Report progress to Planner and escalate issues to Main Agent
 SOUL
+      fi
     fi
 
-    # agent.md — technical configuration
-    if [[ ! -f "${workspace}/agent.md" ]]; then
-      cat > "${workspace}/agent.md" << AGENT
-# ${emoji} ${name} — Agent Configuration
+    # ── USER.md: Merge raw template + agent-specific user ────
+    local src_user="${workspace}/user.md"
+    local dst_user="${workspace}/USER.md"
 
-## Model
-- **Primary**: ${agent_model}
-
-## Tools
-- read, write, edit, exec, apply_patch
-- sessions_list, sessions_history, sessions_send
-
-## Sandbox
-- mode: off (trusted agent)
-
-## Session
-- Maintain context across interactions
-- Reference previous outputs when relevant
-AGENT
-      success "${id}/agent.md ✓ (created)"
+    if [[ -f "${src_user}" ]]; then
+      if [[ -f "${raw_user}" ]]; then
+        {
+          cat "${raw_user}"
+          echo ""
+          echo "---"
+          echo ""
+          echo "# ${emoji} ${name} — Agent-Specific User Context"
+          echo ""
+          cat "${src_user}"
+        } > "${dst_user}"
+        success "${id}/USER.md ✓ (merged: USER.md + user.md)"
+      else
+        cp "${src_user}" "${dst_user}"
+        success "${id}/USER.md ✓ (from agent user.md)"
+      fi
     else
-      success "${id}/agent.md ✓ (exists)"
-    fi
-
-    # user.md — user context
-    if [[ ! -f "${workspace}/user.md" ]]; then
-      cat > "${workspace}/user.md" << USER
+      if [[ -f "${raw_user}" ]]; then
+        cp "${raw_user}" "${dst_user}"
+        success "${id}/USER.md ✓ (from raw template)"
+      else
+        cat > "${dst_user}" << USERFILE
 # User Context for ${emoji} ${name}
 
 ## Research Profile
@@ -311,11 +336,44 @@ AGENT
 - **Language**: Chinese (primary), English for technical terms
 - **Quality Bar**: Top-tier AI conference Oral-level
 - **Communication**: Structured output with clear sections
-USER
-      success "${id}/user.md ✓ (created)"
-    else
-      success "${id}/user.md ✓ (exists)"
+USERFILE
+      fi
     fi
+
+    # ── AGENT.md: From agent-specific agent.md ───────────────
+    local src_agent="${workspace}/agent.md"
+    local dst_agent="${workspace}/AGENT.md"
+
+    if [[ -f "${src_agent}" ]]; then
+      # Update model reference in the copy
+      sed "s|anthropic/claude-sonnet-4-5|${agent_model}|g" \
+        "${src_agent}" > "${dst_agent}"
+      success "${id}/AGENT.md ✓ (from agent.md, model: ${agent_model})"
+    else
+      cat > "${dst_agent}" << AGENTFILE
+# ${emoji} ${name} — Agent Configuration
+
+## Model
+- **Primary**: ${agent_model}
+
+## Tools
+- read, write, edit, exec, apply_patch
+- sessions_list, sessions_history, sessions_send
+
+## Session
+- Maintain context across interactions
+- Reference previous outputs when relevant
+AGENTFILE
+      success "${id}/AGENT.md ✓ (created)"
+    fi
+
+    # ── AGENTS.md: Copy from repo root ───────────────────────
+    local dst_agents="${workspace}/AGENTS.md"
+    if [[ -f "${raw_agents}" ]]; then
+      cp "${raw_agents}" "${dst_agents}"
+      success "${id}/AGENTS.md ✓ (from repo root)"
+    fi
+
   done
 }
 
@@ -358,9 +416,25 @@ prompt_channel() {
   fi
 
   if [[ -z "${SESSION_ID}" ]]; then
-    echo -en "${BOLD}  Enter session ID (optional, press Enter to skip): ${NC}"
+    echo -en "${BOLD}  Enter session ID (optional, Enter to skip): ${NC}"
     read -r SESSION_ID
   fi
+
+  # ── Ask about requireMention ──────────────────────────────
+  if [[ -z "${REQUIRE_MENTION}" ]]; then
+    echo ""
+    echo -e "${BOLD}  群聊 @mention 设置:${NC}"
+    echo -e "  ${CYAN}y${NC}) 每次必须 @机器人 才会回复（推荐，避免刷屏）"
+    echo -e "  ${CYAN}n${NC}) 机器人自动响应所有消息（无需 @）"
+    echo -en "\n${BOLD}  需要 @mention 才回复? [Y/n]: ${NC}"
+    read -r mention_choice
+    case "${mention_choice}" in
+      n|N|no|false)  REQUIRE_MENTION="false" ;;
+      *)             REQUIRE_MENTION="true" ;;
+    esac
+  fi
+
+  info "requireMention: ${REQUIRE_MENTION}"
 }
 
 # ── Configure Bindings ──────────────────────────────────────
@@ -374,17 +448,13 @@ configure_bindings() {
   # =============================================
   # ⚠️ SAFE MERGE STRATEGY
   # =============================================
-  # We build a patch containing ONLY our sub-agents and bindings.
-  # When merging, we APPEND to existing agents.list and bindings
-  # arrays instead of replacing them. This preserves:
-  #   - Your main agent configuration
-  #   - Existing agents you've added manually
-  #   - Auth, models, plugins, gateway, and all other settings
+  # - We only APPEND our sub-agents + bindings
+  # - Main agent is IMPLICIT (uses agents.defaults)
+  #   — we do NOT add "main" to agents.list
+  # - No sandbox — each sub-agent has its own workspace
   # =============================================
 
-  # Build the new agents entries
-  # Each agent gets: identity, groupChat.mentionPatterns, historyLimit
-  # See: https://docs.openclaw.ai/channels/groups#mention-gating-default
+  # Build agents JSON — each agent gets unique identity + mentionPatterns
   local agents_json='['
   local first=true
   for entry in "${CORE_AGENTS[@]}"; do
@@ -414,15 +484,17 @@ AJSON
   done
   agents_json+=']'
 
-  # Build bindings array — bind each agent to the group
-  # IMPORTANT: main agent binding comes FIRST so it handles
-  # non-@mentioned messages. Sub-agents only respond to @mentions.
-  # See: https://docs.openclaw.ai/concepts/multi-agent#routing-rules-how-messages-pick-an-agent
-  local bindings_json
-  bindings_json='[{"agentId": "main", "match": {"channel": "'"${CHANNEL}"'", "peer": {"kind": "group", "id": "'"${GROUP_ID}"'"}}}'
+  # Build bindings — each sub-agent gets its own binding to the group
+  local bindings_json='['
+  first=true
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
-    bindings_json+=",$(cat <<BJSON
+    if [[ "${first}" == true ]]; then
+      first=false
+    else
+      bindings_json+=','
+    fi
+    bindings_json+="$(cat <<BJSON
 {
       "agentId": "${id}",
       "match": {
@@ -438,41 +510,37 @@ BJSON
   done
   bindings_json+=']'
 
+  # Determine requireMention value
+  local require_mention_bool=true
+  if [[ "${REQUIRE_MENTION}" == "false" ]]; then
+    require_mention_bool=false
+  fi
+
   # ── SAFE MERGE with jq ─────────────────────────────────
-  # Key difference from naive `jq -s '.[0] * .[1]'`:
-  #   - We APPEND new agents to existing .agents.list (dedup by id)
-  #   - We APPEND new bindings to existing .bindings (dedup by agentId+groupId)
-  #   - We deep-merge .channels (preserving existing channel settings)
-  #   - We NEVER touch .auth, .models, .plugins, .gateway, .tools, etc.
   if command -v jq &>/dev/null && [[ -f "${OPENCLAW_CONFIG}" ]]; then
     info "Safe-merging into existing ${OPENCLAW_CONFIG}"
-    info "${DIM}(Appending agents, preserving your main agent and all other settings)${NC}"
+    info "${DIM}(Appending sub-agents only. Main agent is implicit — not touched.)${NC}"
 
     local tmp_file
     tmp_file="$(mktemp)"
 
-    # The jq expression:
-    # 1. Read existing config
-    # 2. Remove our agent IDs from existing list (to avoid duplicates)
-    # 3. Append our new agents to the list
-    # 4. Same dedup+append for bindings
-    # 5. Deep merge channel config (preserving existing keys like appId, appSecret)
-    # 6. Set groupChat historyLimit if not already set
+    # Our agent IDs for dedup
     local our_ids
-    our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s '. + ["main"]')"
+    our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s .)"
 
     jq --argjson new_agents "${agents_json}" \
        --argjson new_bindings "${bindings_json}" \
        --argjson our_ids "${our_ids}" \
        --arg channel "${CHANNEL}" \
        --arg group_id "${GROUP_ID}" \
+       --argjson require_mention "${require_mention_bool}" \
     '
-      # Remove our agent IDs from existing list (if any), then append new ones
+      # Dedup + append agents
       .agents.list = (
         [(.agents.list // [])[] | select(.id as $id | $our_ids | index($id) | not)]
         + $new_agents
       )
-      # Remove our bindings from existing list (if any), then append new ones
+      # Dedup + append bindings
       | .bindings = (
         [(.bindings // [])[] | select(
           (.agentId as $aid | $our_ids | index($aid) | not)
@@ -480,17 +548,19 @@ BJSON
         )]
         + $new_bindings
       )
-      # Merge channel config (preserve existing keys like appId, appSecret, token)
+      # Channel config — open policy, preserve existing keys
       | .channels[$channel] = (
         (.channels[$channel] // {}) * {
           "groupPolicy": "open",
           "groups": ((.channels[$channel].groups // {}) * {
-            ($group_id): { "requireMention": true }
+            ($group_id): { "requireMention": $require_mention }
           })
         }
       )
-      # Set groupChat historyLimit (preserve if already set)
-      | .messages = (.messages // {}) * { "groupChat": { "historyLimit": (.messages.groupChat.historyLimit // 50) } }
+      # Set historyLimit (preserve if already set)
+      | .messages = (.messages // {}) * {
+          "groupChat": { "historyLimit": (.messages.groupChat.historyLimit // 50) }
+        }
     ' "${OPENCLAW_CONFIG}" > "${tmp_file}"
 
     if [[ "${DRY_RUN}" == true ]]; then
@@ -502,29 +572,16 @@ BJSON
     rm -f "${tmp_file}"
 
   else
-    # No existing config or no jq — create a minimal config with ONLY our agents
+    # No existing config or no jq
     warn "No existing config found or jq not available."
     warn "Creating new config with sub-agents only."
-    warn "Your main agent will use agents.defaults settings."
 
     local config_dir
     config_dir="$(dirname "${OPENCLAW_CONFIG}")"
     mkdir -p "${config_dir}"
 
-    local channel_config
-    channel_config="$(cat <<CHCFG
-{
-      "${CHANNEL}": {
-        "groupPolicy": "open",
-        "groups": {
-          "${GROUP_ID}": {
-            "requireMention": true
-          }
-        }
-      }
-    }
-CHCFG
-)"
+    local require_mention_val="true"
+    [[ "${REQUIRE_MENTION}" == "false" ]] && require_mention_val="false"
 
     local config_new
     config_new="$(cat <<CONFIG
@@ -533,7 +590,16 @@ CHCFG
     "list": ${agents_json}
   },
   "bindings": ${bindings_json},
-  "channels": ${channel_config},
+  "channels": {
+    "${CHANNEL}": {
+      "groupPolicy": "open",
+      "groups": {
+        "${GROUP_ID}": {
+          "requireMention": ${require_mention_val}
+        }
+      }
+    }
+  },
   "messages": {
     "groupChat": {
       "historyLimit": 50
@@ -551,10 +617,7 @@ CONFIG
   fi
 
   success "Channel bindings configured for ${CHANNEL} → ${GROUP_ID}"
-
-  # Also save a local copy of the generated PATCH (not the full config)
-  echo "${agents_json}" > "${SCRIPT_DIR}/openclaw.generated.agents.json"
-  success "Generated agent patch saved to openclaw.generated.agents.json"
+  info "requireMention: ${REQUIRE_MENTION}"
 }
 
 # ── Verify Setup ────────────────────────────────────────────
@@ -574,32 +637,41 @@ verify() {
 
 # ── Summary ─────────────────────────────────────────────────
 summary() {
-  echo -e ""
+  echo ""
   echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
   echo -e "${GREEN}║${NC}  ${BOLD}✅ Setup Complete!${NC}                              ${GREEN}║${NC}"
   echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
-  echo -e ""
-  echo -e "  ${BOLD}Agents created:${NC} ${#CORE_AGENTS[@]}"
-  echo -e "  ${BOLD}Default model:${NC}  ${MODEL}"
+  echo ""
+  echo -e "  ${BOLD}Sub-agents created:${NC} ${#CORE_AGENTS[@]}"
+  echo -e "  ${BOLD}Default model:${NC}      ${MODEL}"
   if [[ -n "${MODEL_MAP}" ]]; then
     echo -e "  ${BOLD}Model overrides:${NC}"
     for key in "${!AGENT_MODELS[@]}"; do
       echo -e "    ${key} → ${AGENT_MODELS[${key}]}"
     done
   fi
+  echo -e "  ${BOLD}Sandbox:${NC}            disabled (independent workspaces)"
   if [[ "${SKIP_BINDINGS}" != true ]]; then
-    echo -e "  ${BOLD}Channel:${NC}        ${CHANNEL}"
-    echo -e "  ${BOLD}Group ID:${NC}       ${GROUP_ID}"
-    [[ -n "${SESSION_ID}" ]] && echo -e "  ${BOLD}Session ID:${NC}     ${SESSION_ID}"
+    echo -e "  ${BOLD}Channel:${NC}            ${CHANNEL}"
+    echo -e "  ${BOLD}Group ID:${NC}           ${GROUP_ID}"
+    echo -e "  ${BOLD}Require @mention:${NC}   ${REQUIRE_MENTION}"
+    [[ -n "${SESSION_ID}" ]] && echo -e "  ${BOLD}Session ID:${NC}         ${SESSION_ID}"
   fi
-  echo -e ""
-  echo -e "  ${DIM}Your existing main agent and settings were preserved.${NC}"
-  echo -e ""
-  echo -e "  ${DIM}Next steps:${NC}"
+  echo ""
+  echo -e "  ${BOLD}Workspace files:${NC} SOUL.md AGENT.md USER.md AGENTS.md (UPPERCASE)"
+  echo -e "  ${DIM}  SOUL.md  = SOUL_raw.md (generic) + soul.md (agent-specific)${NC}"
+  echo -e "  ${DIM}  USER.md  = USER.md (template) + user.md (agent-specific)${NC}"
+  echo -e "  ${DIM}  AGENT.md = agent.md (agent config with model updated)${NC}"
+  echo -e "  ${DIM}  AGENTS.md = workspace conventions (from repo root)${NC}"
+  echo ""
+  echo -e "  ${DIM}Your main agent is implicit and uses agents.defaults.${NC}"
+  echo -e "  ${DIM}Existing agents and all other settings were preserved.${NC}"
+  echo ""
+  echo -e "  ${BOLD}Next steps:${NC}"
   echo -e "    1. Start the gateway:  ${CYAN}openclaw gateway${NC}"
   echo -e "    2. Check status:       ${CYAN}openclaw agents list --bindings${NC}"
-  echo -e "    3. Test in channel:    Mention any agent in your ${CHANNEL} group"
-  echo -e ""
+  echo -e "    3. Test in channel:    Type ${CYAN}@planner${NC} in your ${CHANNEL} group"
+  echo ""
 }
 
 # ── Main ────────────────────────────────────────────────────

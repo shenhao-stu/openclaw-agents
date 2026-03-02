@@ -2,27 +2,9 @@
     "agents": {
         "list": [
             {
-                "id": "main",
-                "name": "🐾 OpenClaw",
-                "workspace": "~/.openclaw/workspace-main",
-                "model": "zai/glm-5",
-                "default": true,
-                "identity": {
-                    "name": "🐾 OpenClaw"
-                },
-                "groupChat": {
-                    "mentionPatterns": [
-                        "@openclaw",
-                        "openclaw",
-                        "@OpenClaw"
-                    ],
-                    "historyLimit": 50
-                }
-            },
-            {
                 "id": "planner",
                 "name": "🧠 Planner",
-                "workspace": "~/.openclaw/workspace-planner",
+                "workspace": "~/.openclaw/agents/planner",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "🧠 Planner"
@@ -39,7 +21,7 @@
             {
                 "id": "ideator",
                 "name": "💡 Ideator",
-                "workspace": "~/.openclaw/workspace-ideator",
+                "workspace": "~/.openclaw/agents/ideator",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "💡 Ideator"
@@ -56,7 +38,7 @@
             {
                 "id": "critic",
                 "name": "🎯 Critic",
-                "workspace": "~/.openclaw/workspace-critic",
+                "workspace": "~/.openclaw/agents/critic",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "🎯 Critic"
@@ -73,7 +55,7 @@
             {
                 "id": "surveyor",
                 "name": "📚 Surveyor",
-                "workspace": "~/.openclaw/workspace-surveyor",
+                "workspace": "~/.openclaw/agents/surveyor",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "📚 Surveyor"
@@ -90,7 +72,7 @@
             {
                 "id": "coder",
                 "name": "💻 Coder",
-                "workspace": "~/.openclaw/workspace-coder",
+                "workspace": "~/.openclaw/agents/coder",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "💻 Coder"
@@ -107,7 +89,7 @@
             {
                 "id": "writer",
                 "name": "✍️ Writer",
-                "workspace": "~/.openclaw/workspace-writer",
+                "workspace": "~/.openclaw/agents/writer",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "✍️ Writer"
@@ -124,7 +106,7 @@
             {
                 "id": "reviewer",
                 "name": "🔍 Reviewer",
-                "workspace": "~/.openclaw/workspace-reviewer",
+                "workspace": "~/.openclaw/agents/reviewer",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "🔍 Reviewer"
@@ -141,7 +123,7 @@
             {
                 "id": "scout",
                 "name": "📰 Scout",
-                "workspace": "~/.openclaw/workspace-scout",
+                "workspace": "~/.openclaw/agents/scout",
                 "model": "zai/glm-5",
                 "identity": {
                     "name": "📰 Scout"
@@ -155,33 +137,16 @@
                     "historyLimit": 50
                 }
             }
-        ],
-        "defaults": {
-            "sandbox": {
-                "mode": "non-main",
-                "scope": "session",
-                "workspaceAccess": "none"
-            }
-        }
+        ]
     },
     "bindings": [
-        {
-            "agentId": "main",
-            "match": {
-                "channel": "feishu",
-                "peer": {
-                    "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
-                }
-            }
-        },
         {
             "agentId": "planner",
             "match": {
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -191,7 +156,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -201,7 +166,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -211,7 +176,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -221,7 +186,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -231,7 +196,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -241,7 +206,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         },
@@ -251,7 +216,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID_HERE"
+                    "id": "oc_YOUR_GROUP_ID"
                 }
             }
         }
@@ -260,7 +225,7 @@
         "feishu": {
             "groupPolicy": "open",
             "groups": {
-                "oc_YOUR_GROUP_ID_HERE": {
+                "oc_YOUR_GROUP_ID": {
                     "requireMention": true
                 }
             },

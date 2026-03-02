@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-02
+
+### Changed
+- 📝 **Workspace files are now UPPERCASE**: `SOUL.md`, `AGENT.md`, `USER.md`, `AGENTS.md`
+- 🔀 **SOUL.md merges two sources**: `SOUL_raw.md` (generic behaviors) + agent-specific `soul.md` (identity)
+- 🔀 **USER.md merges two sources**: `USER.md` (template) + agent-specific `user.md` (context)
+- 🚫 **No sandbox**: Removed all Docker sandbox config — each agent has its own workspace
+- 🎯 **No "main" in agents.list**: Main agent is implicit, uses `agents.defaults`
+
+### Added
+- ❓ `--require-mention` flag: Choose whether agents need @mention to respond in groups
+- 💬 Interactive prompt for requireMention during setup
+
+### Removed
+- 🗑️ Docker sandbox configuration (`mode`, `workspaceAccess`, `scope`)
+- 🗑️ "main" agent entry from `agents.list` and `bindings`
+
 ## [1.1.0] - 2026-03-02
 
 ### Changed
