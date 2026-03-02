@@ -186,7 +186,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID"
+                    "id": "oc_DEV_GROUP_ID"
                 }
             }
         },
@@ -216,7 +216,7 @@
                 "channel": "feishu",
                 "peer": {
                     "kind": "group",
-                    "id": "oc_YOUR_GROUP_ID"
+                    "id": "oc_NEWS_GROUP_ID"
                 }
             }
         }
@@ -227,6 +227,12 @@
             "groups": {
                 "oc_YOUR_GROUP_ID": {
                     "requireMention": true
+                },
+                "oc_DEV_GROUP_ID": {
+                    "requireMention": true
+                },
+                "oc_NEWS_GROUP_ID": {
+                    "requireMention": false
                 }
             },
             "streaming": true,

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================
-#  OpenClaw Agents — One-Command Multi-Agent Setup  (v2.0.0)
+#  OpenClaw Agents — One-Command Multi-Agent Setup  (v2.1.0)
 # ============================================================
 #  Usage:
 #    ./setup.sh                          # Interactive setup
 #    ./setup.sh --channel feishu         # Pre-select channel
-#    ./setup.sh --group-id oc_xxx        # Pre-fill group ID
+#    ./setup.sh --group-id oc_xxx        # Default group for all agents
+#    ./setup.sh --group-map 'coder=oc_aaa,scout=oc_bbb'   # Per-agent groups
 #    ./setup.sh --model zai/glm-5        # Unified model for all agents
 #    ./setup.sh --model-map planner=zai/glm-5,coder=ollama/kimi-k2.5:cloud
 #    ./setup.sh --skip-bindings          # Skip channel binding
@@ -15,10 +16,10 @@
 #    1. Verify openclaw CLI is installed
 #    2. Create all sub-agents (openclaw auto-generates AGENTS.md, SOUL.md, USER.md)
 #    3. Set visual identities for each agent
-#    4. Copy soul.md + user.md source files into each workspace
-#    5. Create BOOTSTRAP.md to instruct agent to self-merge on first run
+#    4. Copy agent-specific soul.md + user.md into workspace for self-merge
+#    5. Create BOOTSTRAP.md so the agent merges on first run
 #    6. Append workflow instructions to AGENTS.md
-#    7. Configure openclaw.json with routing bindings
+#    7. Configure openclaw.json with per-agent routing bindings
 #
 #  ⚠️ SAFE MERGE: Appends sub-agents to existing config.
 #  Does NOT touch your main agent, auth, models, plugins, etc.
@@ -46,8 +47,8 @@ step()    { echo -e "\n${MAGENTA}▸${NC} ${BOLD}$*${NC}"; }
 banner()  {
   echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║${NC}  ${BOLD}🐾 OpenClaw Multi-Agent Setup${NC}  v2.0.0          ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${DIM}Agent self-merge · No sandbox · Workflow-aware${NC}  ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${BOLD}🐾 OpenClaw Multi-Agent Setup${NC}  v2.1.0          ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${DIM}Agent self-merge · Per-agent groups · Workflows${NC} ${CYAN}║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════════╝${NC}"
   echo ""
 }
@@ -73,7 +74,8 @@ CORE_AGENTS=(
 
 # ── Default Flags ───────────────────────────────────────────
 CHANNEL=""
-GROUP_ID=""
+GROUP_ID=""            # Default group ID for all agents
+GROUP_MAP=""           # Per-agent group overrides: agent=group_id,...
 SESSION_ID=""
 MODEL="${DEFAULT_MODEL}"
 MODEL_MAP=""
@@ -86,6 +88,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --channel)         CHANNEL="$2";         shift 2 ;;
     --group-id)        GROUP_ID="$2";        shift 2 ;;
+    --group-map)       GROUP_MAP="$2";       shift 2 ;;
     --session-id)      SESSION_ID="$2";      shift 2 ;;
     --model)           MODEL="$2";           shift 2 ;;
     --model-map)       MODEL_MAP="$2";       shift 2 ;;
@@ -97,15 +100,33 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --channel CHANNEL      Channel type (feishu|whatsapp|telegram|discord|slack)"
-      echo "  --group-id ID          Group/chat ID for channel binding"
-      echo "  --session-id ID        Session ID for channel group routing"
+      echo "  --group-id ID          Default group ID for all agents"
+      echo "  --group-map MAP        Per-agent group IDs (comma-separated)"
+      echo "                         Example: coder=oc_aaa,scout=oc_bbb"
+      echo "                         Agents not listed use --group-id"
       echo "  --model MODEL          Default model for ALL agents (default: ${DEFAULT_MODEL})"
       echo "  --model-map MAP        Per-agent model overrides (comma-separated)"
-      echo "                         Example: planner=zai/glm-5,coder=ollama/kimi-k2.5:cloud"
-      echo "  --require-mention BOOL Whether agents require @mention to respond (true|false)"
+      echo "  --require-mention BOOL Require @mention to respond (true|false)"
       echo "  --skip-bindings        Skip channel binding configuration"
       echo "  --dry-run              Preview commands without executing"
       echo "  -h, --help             Show this help message"
+      echo ""
+      echo "Group Binding:"
+      echo "  On Feishu, each sub-agent can bind to a different group."
+      echo "  Use --group-id for a shared group, --group-map for per-agent groups."
+      echo ""
+      echo "Examples:"
+      echo "  # All agents in one group"
+      echo "  ./setup.sh --channel feishu --group-id oc_xxx"
+      echo ""
+      echo "  # Agents in different groups"
+      echo "  ./setup.sh --channel feishu --group-id oc_default \\"
+      echo "    --group-map 'coder=oc_dev_group,scout=oc_news_group'"
+      echo ""
+      echo "  # Custom models"
+      echo "  ./setup.sh --model zai/glm-5 \\"
+      echo "    --model-map 'coder=ollama/kimi-k2.5:cloud' \\"
+      echo "    --channel feishu --group-id oc_xxx"
       exit 0
       ;;
     *) error "Unknown option: $1"; exit 1 ;;
@@ -117,19 +138,27 @@ declare -A AGENT_MODELS
 if [[ -n "${MODEL_MAP}" ]]; then
   IFS=',' read -ra MAP_ENTRIES <<< "${MODEL_MAP}"
   for entry in "${MAP_ENTRIES[@]}"; do
-    local_key="${entry%%=*}"
-    local_val="${entry#*=}"
-    AGENT_MODELS["${local_key}"]="${local_val}"
+    AGENT_MODELS["${entry%%=*}"]="${entry#*=}"
   done
 fi
 
 get_model() {
   local agent_id="$1"
-  if [[ -n "${AGENT_MODELS[${agent_id}]+x}" ]]; then
-    echo "${AGENT_MODELS[${agent_id}]}"
-  else
-    echo "${MODEL}"
-  fi
+  echo "${AGENT_MODELS[${agent_id}]:-${MODEL}}"
+}
+
+# ── Parse group map ─────────────────────────────────────────
+declare -A AGENT_GROUPS
+if [[ -n "${GROUP_MAP}" ]]; then
+  IFS=',' read -ra MAP_ENTRIES <<< "${GROUP_MAP}"
+  for entry in "${MAP_ENTRIES[@]}"; do
+    AGENT_GROUPS["${entry%%=*}"]="${entry#*=}"
+  done
+fi
+
+get_group() {
+  local agent_id="$1"
+  echo "${AGENT_GROUPS[${agent_id}]:-${GROUP_ID}}"
 }
 
 # ── Helper: run or preview ──────────────────────────────────
@@ -141,7 +170,7 @@ run() {
   fi
 }
 
-# ── Preflight Checks ───────────────────────────────────────
+# ── Preflight ──────────────────────────────────────────────
 preflight() {
   step "Preflight checks"
 
@@ -163,26 +192,19 @@ preflight() {
     warn "jq not found — config merge will use fallback mode."
   fi
 
-  # Backup existing config
+  # Backup
   if [[ -f "${OPENCLAW_CONFIG}" ]]; then
     local backup="${OPENCLAW_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)"
     cp "${OPENCLAW_CONFIG}" "${backup}"
-    success "Existing config backed up → ${backup}"
+    success "Config backed up → ${backup}"
   fi
 
   info "Default model: ${BOLD}${MODEL}${NC}"
-  if [[ -n "${MODEL_MAP}" ]]; then
-    info "Per-agent overrides:"
-    for key in "${!AGENT_MODELS[@]}"; do
-      echo -e "    ${key} → ${AGENT_MODELS[${key}]}"
-    done
-  fi
 }
 
 # ── Step 1: Create Agents ──────────────────────────────────
 create_agents() {
   step "Creating ${#CORE_AGENTS[@]} sub-agents"
-  info "${DIM}openclaw auto-generates AGENTS.md, SOUL.md, USER.md in each workspace${NC}"
 
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
@@ -190,12 +212,12 @@ create_agents() {
     local agent_model
     agent_model="$(get_model "${id}")"
 
-    info "Creating: ${emoji} ${name} (${id}) → model: ${agent_model}"
+    info "${emoji} ${name} → model: ${agent_model}"
     run "openclaw agents add ${id} \
       --model '${agent_model}' \
       --workspace '${workspace}' 2>/dev/null || true"
 
-    success "Agent '${id}' created → workspace: ${workspace}"
+    success "${id} created"
   done
 }
 
@@ -205,23 +227,17 @@ set_identities() {
 
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
-    local display_name="${emoji} ${name}"
-
     run "openclaw agents set-identity \
       --agent '${id}' \
-      --name '${display_name}' 2>/dev/null || true"
-
-    success "'${id}' → ${display_name}"
+      --name '${emoji} ${name}' 2>/dev/null || true"
+    success "${id} → ${emoji} ${name}"
   done
 }
 
 # ── Step 3: Deploy source files + BOOTSTRAP.md ─────────────
 deploy_source_files() {
   step "Deploying source files to workspaces"
-  info "${DIM}Copying soul.md + user.md → agent will self-merge on first run${NC}"
-
-  local raw_soul="${SCRIPT_DIR}/SOUL_raw.md"
-  local raw_user="${SCRIPT_DIR}/USER.md"
+  info "${DIM}Agent will self-merge via BOOTSTRAP.md on first run${NC}"
 
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
@@ -232,81 +248,44 @@ deploy_source_files() {
 
     mkdir -p "${workspace}"
 
-    # ── Copy agent-specific source files (lowercase) ─────────
-    # These are reference files the agent reads during bootstrap.
-    if [[ -f "${src_dir}/soul.md" ]]; then
-      cp "${src_dir}/soul.md" "${workspace}/_soul_source.md"
-      success "${id}/_soul_source.md ✓ (agent identity)"
-    fi
-
-    if [[ -f "${src_dir}/user.md" ]]; then
-      cp "${src_dir}/user.md" "${workspace}/_user_source.md"
-      success "${id}/_user_source.md ✓ (agent user context)"
-    fi
-
+    # Copy agent-specific source files (for self-merge)
+    [[ -f "${src_dir}/soul.md" ]] && cp "${src_dir}/soul.md" "${workspace}/_soul_source.md"
+    [[ -f "${src_dir}/user.md" ]] && cp "${src_dir}/user.md" "${workspace}/_user_source.md"
     if [[ -f "${src_dir}/agent.md" ]]; then
-      # Update model reference
       sed "s|anthropic/claude-sonnet-4-5|${agent_model}|g" \
         "${src_dir}/agent.md" > "${workspace}/_agent_source.md"
-      success "${id}/_agent_source.md ✓ (agent config, model: ${agent_model})"
     fi
 
-    # ── Copy raw templates (generic behaviors) ───────────────
-    if [[ -f "${raw_soul}" ]]; then
-      cp "${raw_soul}" "${workspace}/_soul_raw.md"
-    fi
-
-    if [[ -f "${raw_user}" ]]; then
-      cp "${raw_user}" "${workspace}/_user_raw.md"
-    fi
-
-    # ── Create BOOTSTRAP.md ──────────────────────────────────
-    # OpenClaw convention: agent reads BOOTSTRAP.md on first run,
-    # follows instructions, then deletes it.
+    # Create BOOTSTRAP.md — first-run self-merge instructions
     cat > "${workspace}/BOOTSTRAP.md" << 'BOOTEOF'
 # 🐾 OpenClaw Multi-Agent Bootstrap
 
-Welcome! You are a specialized sub-agent in the OpenClaw multi-agent system.
-This is your first-run setup. Please follow these steps:
+你是 OpenClaw 多智能体系统中的一个子 Agent。这是你的首次启动。
 
-## Step 1: Merge Your Identity
+## 请按顺序执行以下步骤：
 
-Read the following files in your workspace and merge them into your SOUL.md:
+### 1. 合并你的身份（SOUL.md）
+读取 `_soul_source.md`，这是你的专属身份、能力和人格定义。
+将其内容**智能合并**到你现有的 `SOUL.md` 中（保留原有通用行为规范，追加你的专属身份）。
 
-1. `_soul_raw.md` — Generic behavior guidelines (be helpful, have opinions, etc.)
-2. `_soul_source.md` — Your specific role, personality, and capabilities
+### 2. 合并用户上下文（USER.md）
+读取 `_user_source.md`，这是你的 Agent 专属用户上下文。
+将其内容合并到你的 `USER.md` 中。
 
-**How to merge**: Combine both into SOUL.md. Put the generic guidelines first,
-then your specific identity below. Make it feel like one cohesive document.
+### 3. 了解你的配置
+读取 `_agent_source.md`，了解你的模型配置和工具权限。
 
-## Step 2: Merge User Context
+### 4. 阅读工作流
+检查 `AGENTS.md` 底部的工作流指引，了解你参与哪些工作流以及你的职责。
 
-Read and merge into your USER.md:
-
-1. `_user_raw.md` — User template (name, timezone, preferences)
-2. `_user_source.md` — Your agent-specific user context (research profile, etc.)
-
-## Step 3: Set Up Agent Config
-
-Read `_agent_source.md` and use it to understand your model config and tools.
-You can keep this info in your session memory or merge relevant parts.
-
-## Step 4: Read Your Workflows
-
-Check AGENTS.md for workflow instructions specific to your role.
-Understand which workflows you participate in and what you do in each.
-
-## Step 5: Clean Up
-
-After merging, delete this BOOTSTRAP.md and all `_*_source.md` / `_*_raw.md` files.
-They are no longer needed — all info is now in your SOUL.md and USER.md.
+### 5. 清理
+合并完成后，删除本文件 (`BOOTSTRAP.md`) 和所有 `_*_source.md` 文件。
 
 ---
 
-_This bootstrap was generated by the openclaw-agents setup script._
-_Repository: https://github.com/shenhao-stu/openclaw-agents_
+_Generated by [openclaw-agents](https://github.com/shenhao-stu/openclaw-agents)_
 BOOTEOF
-    success "${id}/BOOTSTRAP.md ✓ (first-run self-merge instructions)"
+    success "${id}: _soul_source.md + _user_source.md + BOOTSTRAP.md ✓"
 
   done
 }
@@ -322,100 +301,77 @@ append_workflows() {
     local workspace="${OPENCLAW_HOME}/workspace-${id}"
     local agents_md="${workspace}/AGENTS.md"
 
-    # If AGENTS.md doesn't exist yet (openclaw agents add not run), create stub
-    if [[ ! -f "${agents_md}" ]]; then
-      touch "${agents_md}"
-    fi
+    [[ ! -f "${agents_md}" ]] && touch "${agents_md}"
 
     {
-      echo ""
-      echo "---"
-      echo ""
+      echo ""; echo "---"; echo ""
       echo "# 📋 Workflow Reference for ${emoji} ${name}"
-      echo ""
-      echo "The following workflows involve you. Read them to understand your role."
       echo ""
 
       case "${id}" in
         planner)
-          echo "## Your Workflows (Orchestrator role in all)"
-          echo "- \`/paper-pipeline\` — Orchestrate the entire paper production"
-          echo "- \`/brainstorm\` — Prepare context and coordinate brainstorm"
-          echo "- \`/rebuttal\` — Coordinate rebuttal strategy and task assignment"
-          echo "- \`/daily-digest\` — Receive alerts from Scout"
-          echo ""
+          echo "## Your Workflows (Orchestrator)"
+          echo "- \`/paper-pipeline\` — 全流程统筹"
+          echo "- \`/brainstorm\` — 协调头脑风暴"
+          echo "- \`/rebuttal\` — 协调 Rebuttal 策略"
+          echo "- \`/daily-digest\` — 接收 Scout 预警"
           for wf in paper-pipeline brainstorm rebuttal daily-digest; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         ideator)
           echo "## Your Workflows"
-          echo "- \`/brainstorm\` — Lead idea generation (Step 2, 4, 6)"
-          echo "- \`/paper-pipeline\` — Phase 2 (Idea gen), Phase 3 (Method design)"
-          echo ""
+          echo "- \`/brainstorm\` — 主导 Idea 生成 (Step 2, 4, 6)"
+          echo "- \`/paper-pipeline\` — Phase 2-3"
           for wf in brainstorm paper-pipeline; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         critic)
           echo "## Your Workflows"
-          echo "- \`/brainstorm\` — Step 5.5: Taste gate (SHARP ≥ 18 to pass)"
-          echo "- \`/paper-pipeline\` — Phase 2.5, 3, 6, 7: Taste checkpoints"
-          echo ""
+          echo "- \`/brainstorm\` — Step 5.5 品鉴 (SHARP ≥ 18)"
+          echo "- \`/paper-pipeline\` — Phase 2.5, 3, 6, 7"
           for wf in brainstorm paper-pipeline; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         surveyor)
           echo "## Your Workflows"
-          echo "- \`/brainstorm\` — Step 3: Novelty verification"
-          echo "- \`/paper-pipeline\` — Phase 1: Literature survey"
-          echo "- \`/rebuttal\` — Provide missing references"
-          echo ""
+          echo "- \`/brainstorm\` — Step 3 新颖性验证"
+          echo "- \`/paper-pipeline\` — Phase 1 文献调研"
+          echo "- \`/rebuttal\` — 补充引用"
           for wf in brainstorm paper-pipeline rebuttal; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         coder)
           echo "## Your Workflows"
-          echo "- \`/paper-pipeline\` — Phase 4 (Implementation), Phase 5 (Experiments)"
-          echo "- \`/rebuttal\` — Supplementary experiments for reviewers"
-          echo ""
+          echo "- \`/paper-pipeline\` — Phase 4-5 实现+实验"
+          echo "- \`/rebuttal\` — 补充实验"
           for wf in paper-pipeline rebuttal; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         writer)
           echo "## Your Workflows"
-          echo "- \`/paper-pipeline\` — Phase 6 (Draft), Phase 7 (Revision)"
-          echo "- \`/rebuttal\` — Step 3-4: Revision + rebuttal writing"
-          echo ""
+          echo "- \`/paper-pipeline\` — Phase 6-7 撰写+修改"
+          echo "- \`/rebuttal\` — 撰写 Rebuttal"
           for wf in paper-pipeline rebuttal; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         reviewer)
           echo "## Your Workflows"
-          echo "- \`/paper-pipeline\` — Phase 7: Internal peer review"
-          echo "- \`/rebuttal\` — Step 1 (Analyze), Step 5 (Review rebuttal)"
-          echo ""
+          echo "- \`/paper-pipeline\` — Phase 7 内部审稿"
+          echo "- \`/rebuttal\` — 分析审稿意见 + 审核 Rebuttal"
           for wf in paper-pipeline rebuttal; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
         scout)
           echo "## Your Workflows"
-          echo "- \`/daily-digest\` — You lead this end-to-end"
-          echo "- \`/paper-pipeline\` — Phase 0: Trend sensing"
-          echo "- \`/brainstorm\` — Step 1: Provide recent hot papers"
-          echo ""
+          echo "- \`/daily-digest\` — 你全权负责"
+          echo "- \`/paper-pipeline\` — Phase 0 趋势感知"
+          echo "- \`/brainstorm\` — 提供热门论文"
           for wf in daily-digest paper-pipeline brainstorm; do
-            [[ -f "${wf_dir}/${wf}.md" ]] && { echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; echo ""; }
-          done
-          ;;
+            [[ -f "${wf_dir}/${wf}.md" ]] && { echo ""; echo "---"; echo ""; cat "${wf_dir}/${wf}.md"; }
+          done ;;
       esac
     } >> "${agents_md}"
-    success "${id}/AGENTS.md ✓ (workflow instructions appended)"
+    success "${id}/AGENTS.md ✓"
   done
 }
 
@@ -427,14 +383,14 @@ prompt_channel() {
   fi
 
   if [[ -z "${CHANNEL}" ]]; then
-    echo -e "\n${BOLD}Select a channel for group binding:${NC}"
+    echo -e "\n${BOLD}Select a channel:${NC}"
     echo -e "  ${CYAN}1${NC}) feishu   (飞书)"
     echo -e "  ${CYAN}2${NC}) whatsapp"
     echo -e "  ${CYAN}3${NC}) telegram"
     echo -e "  ${CYAN}4${NC}) discord"
     echo -e "  ${CYAN}5${NC}) slack"
     echo -e "  ${CYAN}s${NC}) skip"
-    echo -en "\n${BOLD}  Choice [1-5/s]: ${NC}"
+    echo -en "\n  Choice [1-5/s]: "
     read -r choice
     case "${choice}" in
       1) CHANNEL="feishu" ;;
@@ -442,13 +398,13 @@ prompt_channel() {
       3) CHANNEL="telegram" ;;
       4) CHANNEL="discord" ;;
       5) CHANNEL="slack" ;;
-      s|S) SKIP_BINDINGS=true; return ;;
-      *) warn "Invalid choice, skipping."; SKIP_BINDINGS=true; return ;;
+      *) SKIP_BINDINGS=true; return ;;
     esac
   fi
 
+  # ── Group ID (default for all agents) ─────────────────────
   if [[ -z "${GROUP_ID}" ]]; then
-    echo -en "\n${BOLD}  Enter group/chat ID for ${CHANNEL}: ${NC}"
+    echo -en "\n${BOLD}  Default group ID for ${CHANNEL}: ${NC}"
     read -r GROUP_ID
     if [[ -z "${GROUP_ID}" ]]; then
       warn "No group ID, skipping bindings."
@@ -457,22 +413,31 @@ prompt_channel() {
     fi
   fi
 
-  if [[ -z "${SESSION_ID}" ]]; then
-    echo -en "${BOLD}  Enter session ID (optional, Enter to skip): ${NC}"
-    read -r SESSION_ID
+  # ── Per-agent group overrides ─────────────────────────────
+  if [[ -z "${GROUP_MAP}" ]]; then
+    echo ""
+    echo -e "  ${DIM}Each sub-agent can bind to a different group.${NC}"
+    echo -e "  ${DIM}Press Enter to use default group (${GROUP_ID}) for all agents.${NC}"
+    echo -en "${BOLD}  Per-agent group overrides (e.g. coder=oc_xxx,scout=oc_yyy): ${NC}"
+    read -r GROUP_MAP
+    if [[ -n "${GROUP_MAP}" ]]; then
+      IFS=',' read -ra MAP_ENTRIES <<< "${GROUP_MAP}"
+      for entry in "${MAP_ENTRIES[@]}"; do
+        AGENT_GROUPS["${entry%%=*}"]="${entry#*=}"
+      done
+    fi
   fi
 
-  # Ask about requireMention
+  # ── Ask about requireMention ──────────────────────────────
   if [[ -z "${REQUIRE_MENTION}" ]]; then
     echo ""
-    echo -e "${BOLD}  群聊 @mention 设置:${NC}"
-    echo -e "  ${CYAN}y${NC}) 必须 @机器人 才会回复（推荐，避免刷屏）"
-    echo -e "  ${CYAN}n${NC}) 机器人自动响应所有消息（无需 @）"
-    echo -en "\n${BOLD}  需要 @mention 才回复? [Y/n]: ${NC}"
+    echo -e "  ${CYAN}y${NC}) 必须 @机器人 才回复（推荐）"
+    echo -e "  ${CYAN}n${NC}) 自动响应所有消息（无需 @）"
+    echo -en "  需要 @mention? [Y/n]: "
     read -r mc
     case "${mc}" in
-      n|N|no|false)  REQUIRE_MENTION="false" ;;
-      *)             REQUIRE_MENTION="true" ;;
+      n|N|no|false) REQUIRE_MENTION="false" ;;
+      *)            REQUIRE_MENTION="true" ;;
     esac
   fi
   info "requireMention: ${REQUIRE_MENTION}"
@@ -510,32 +475,47 @@ AJSON
   done
   agents_json+=']'
 
-  # Build bindings JSON
+  # Build bindings JSON — each agent can have a DIFFERENT group-id
   local bindings_json='['
   first=true
+  local all_group_ids=()
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
+    local agent_group
+    agent_group="$(get_group "${id}")"
     [[ "${first}" == true ]] && first=false || bindings_json+=','
     bindings_json+="$(cat <<BJSON
 {
       "agentId": "${id}",
       "match": {
         "channel": "${CHANNEL}",
-        "peer": { "kind": "group", "id": "${GROUP_ID}" }
+        "peer": { "kind": "group", "id": "${agent_group}" }
       }
     }
 BJSON
 )"
+    # Collect unique group IDs
+    if [[ ! " ${all_group_ids[*]:-} " =~ " ${agent_group} " ]]; then
+      all_group_ids+=("${agent_group}")
+    fi
   done
   bindings_json+=']'
 
   local require_mention_bool=true
   [[ "${REQUIRE_MENTION}" == "false" ]] && require_mention_bool=false
 
+  # Build groups config for ALL unique group IDs
+  local groups_json="{"
+  first=true
+  for gid in "${all_group_ids[@]}"; do
+    [[ "${first}" == true ]] && first=false || groups_json+=","
+    groups_json+="\"${gid}\": { \"requireMention\": ${require_mention_bool} }"
+  done
+  groups_json+="}"
+
   # ── Safe merge with jq ─────────────────────────────────
   if command -v jq &>/dev/null && [[ -f "${OPENCLAW_CONFIG}" ]]; then
     info "Safe-merging into existing config"
-    info "${DIM}(Appending sub-agents. Main agent and all other settings preserved.)${NC}"
 
     local tmp_file
     tmp_file="$(mktemp)"
@@ -547,54 +527,38 @@ BJSON
        --argjson new_bindings "${bindings_json}" \
        --argjson our_ids "${our_ids}" \
        --arg channel "${CHANNEL}" \
-       --arg group_id "${GROUP_ID}" \
-       --argjson require_mention "${require_mention_bool}" \
+       --argjson new_groups "${groups_json}" \
     '
-      # Dedup + append agents
       .agents.list = (
         [(.agents.list // [])[] | select(.id as $id | $our_ids | index($id) | not)]
         + $new_agents
       )
-      # Dedup + append bindings
       | .bindings = (
         [(.bindings // [])[] | select(
-          (.agentId as $aid | $our_ids | index($aid) | not)
-          or (.match.peer.id != $group_id)
+          .agentId as $aid | $our_ids | index($aid) | not
         )]
         + $new_bindings
       )
-      # Channel config — open policy, preserve existing keys (appId, appSecret, etc.)
       | .channels[$channel] = (
         (.channels[$channel] // {}) * {
           "groupPolicy": "open",
-          "groups": ((.channels[$channel].groups // {}) * {
-            ($group_id): { "requireMention": $require_mention }
-          })
+          "groups": ((.channels[$channel].groups // {}) * $new_groups)
         }
       )
-      # Set historyLimit (preserve if already set)
       | .messages = (.messages // {}) * {
           "groupChat": { "historyLimit": (.messages.groupChat.historyLimit // 50) }
         }
     ' "${OPENCLAW_CONFIG}" > "${tmp_file}"
 
     if [[ "${DRY_RUN}" == true ]]; then
-      echo -e "  ${DIM}Would write to ${OPENCLAW_CONFIG}:${NC}"
       cat "${tmp_file}"
     else
       cp "${tmp_file}" "${OPENCLAW_CONFIG}"
     fi
     rm -f "${tmp_file}"
   else
-    # No existing config — create fresh
-    warn "No existing config or jq unavailable. Creating new config."
-    local config_dir
-    config_dir="$(dirname "${OPENCLAW_CONFIG}")"
-    mkdir -p "${config_dir}"
-
-    local rm_val="true"
-    [[ "${REQUIRE_MENTION}" == "false" ]] && rm_val="false"
-
+    warn "No existing config or jq unavailable. Creating new."
+    mkdir -p "$(dirname "${OPENCLAW_CONFIG}")"
     cat > "${OPENCLAW_CONFIG}" <<CONFIG
 {
   "agents": { "list": ${agents_json} },
@@ -602,7 +566,7 @@ BJSON
   "channels": {
     "${CHANNEL}": {
       "groupPolicy": "open",
-      "groups": { "${GROUP_ID}": { "requireMention": ${rm_val} } }
+      "groups": ${groups_json}
     }
   },
   "messages": { "groupChat": { "historyLimit": 50 } }
@@ -610,18 +574,21 @@ BJSON
 CONFIG
   fi
 
-  success "Bindings configured: ${CHANNEL} → ${GROUP_ID}"
+  success "Bindings configured"
+  for entry in "${CORE_AGENTS[@]}"; do
+    IFS='|' read -r id name emoji role <<< "${entry}"
+    local ag
+    ag="$(get_group "${id}")"
+    echo -e "    ${emoji} ${id} → ${ag}"
+  done
 }
 
 # ── Verify ──────────────────────────────────────────────────
 verify() {
-  step "Verifying setup"
-  if [[ "${DRY_RUN}" == true ]]; then
-    info "Dry-run mode — skipping verification"
-    return
-  fi
-  openclaw agents list --bindings 2>/dev/null || warn "Could not verify (gateway may not be running)"
-  success "Setup complete!"
+  step "Verifying"
+  if [[ "${DRY_RUN}" == true ]]; then info "Dry-run — skipping"; return; fi
+  openclaw agents list --bindings 2>/dev/null || warn "Gateway may not be running"
+  success "Done!"
 }
 
 # ── Summary ─────────────────────────────────────────────────
@@ -631,36 +598,26 @@ summary() {
   echo -e "${GREEN}║${NC}  ${BOLD}✅ Setup Complete!${NC}                              ${GREEN}║${NC}"
   echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
   echo ""
-  echo -e "  ${BOLD}Sub-agents:${NC}         ${#CORE_AGENTS[@]}"
-  echo -e "  ${BOLD}Default model:${NC}      ${MODEL}"
-  if [[ -n "${MODEL_MAP}" ]]; then
-    echo -e "  ${BOLD}Model overrides:${NC}"
-    for key in "${!AGENT_MODELS[@]}"; do
-      echo -e "    ${key} → ${AGENT_MODELS[${key}]}"
-    done
-  fi
+  echo -e "  ${BOLD}Agents:${NC}  ${#CORE_AGENTS[@]}  |  ${BOLD}Model:${NC} ${MODEL}"
   if [[ "${SKIP_BINDINGS}" != true ]]; then
-    echo -e "  ${BOLD}Channel:${NC}            ${CHANNEL}"
-    echo -e "  ${BOLD}Group ID:${NC}           ${GROUP_ID}"
-    echo -e "  ${BOLD}Require @mention:${NC}   ${REQUIRE_MENTION}"
+    echo -e "  ${BOLD}Channel:${NC} ${CHANNEL}  |  ${BOLD}@mention:${NC} ${REQUIRE_MENTION}"
+    if [[ -n "${GROUP_MAP}" ]]; then
+      echo -e "  ${BOLD}Group mapping:${NC}"
+      for entry in "${CORE_AGENTS[@]}"; do
+        IFS='|' read -r id name emoji role <<< "${entry}"
+        echo -e "    ${emoji} ${id} → $(get_group "${id}")"
+      done
+    else
+      echo -e "  ${BOLD}Group:${NC}   ${GROUP_ID} (all agents)"
+    fi
   fi
-  echo ""
-  echo -e "  ${BOLD}What was deployed:${NC}"
-  echo -e "  ${DIM}  _soul_source.md  — agent-specific identity (for self-merge)${NC}"
-  echo -e "  ${DIM}  _user_source.md  — agent-specific user context${NC}"
-  echo -e "  ${DIM}  _soul_raw.md     — generic behavior guidelines${NC}"
-  echo -e "  ${DIM}  _user_raw.md     — user template${NC}"
-  echo -e "  ${DIM}  BOOTSTRAP.md     — first-run self-merge instructions${NC}"
-  echo -e "  ${DIM}  AGENTS.md        — workflow instructions (appended)${NC}"
-  echo ""
-  echo -e "  ${BOLD}How it works:${NC}"
-  echo -e "  Each agent reads BOOTSTRAP.md on first run, merges the source"
-  echo -e "  files into its SOUL.md and USER.md, then deletes the bootstrap."
   echo ""
   echo -e "  ${BOLD}Next steps:${NC}"
-  echo -e "    1. Start the gateway:  ${CYAN}openclaw gateway${NC}"
-  echo -e "    2. Check agents:       ${CYAN}openclaw agents list --bindings${NC}"
-  echo -e "    3. Test in channel:    ${CYAN}@planner${NC} in your ${CHANNEL:-channel} group"
+  echo -e "    1. ${CYAN}openclaw gateway${NC}         — Start gateway"
+  echo -e "    2. ${CYAN}openclaw agents list${NC}     — Verify agents"
+  echo -e "    3. Message ${CYAN}@planner${NC}         — Test in group"
+  echo ""
+  echo -e "  ${DIM}Each agent reads BOOTSTRAP.md on first run and self-merges its identity.${NC}"
   echo ""
 }
 

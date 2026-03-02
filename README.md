@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
   <br/>
-  <img src="https://img.shields.io/badge/version-2.0.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.1.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
   <img src="https://img.shields.io/badge/channels-feishu%20%7C%20whatsapp%20%7C%20telegram%20%7C%20discord-purple?style=flat-square" alt="Channels">
@@ -34,7 +34,7 @@
 ### What You Get
 
 - 🤖 **9 pre-configured agents** with rich emoji identities for instant recognition in chat
-- 📝 **Full workspace files** — `soul.md`, `agent.md`, `user.md` for every agent
+- 📝 **Agent self-merge** — deploys `BOOTSTRAP.md` for intelligent first-run setup
 - 🔗 **Channel routing** — auto-configured bindings for Feishu, WhatsApp, Telegram, Discord
 - 📋 **4 workflow templates** — Paper Pipeline, Daily Digest, Brainstorm, Rebuttal
 - ⚔️ **Adversarial collaboration** — Ideator↔Critic and Writer↔Reviewer creative tension
@@ -92,17 +92,18 @@ fi
 Ask the user these questions:
 
 1. **Which channel do you use?** → `--channel feishu|whatsapp|telegram|discord|slack`
-2. **What is your group/chat ID?** → `--group-id <ID>`
-   - Feishu: `oc_xxxxxxxxx` (chat_id)
+2. **Default group ID** → `--group-id <ID>`
+   - Feishu: `oc_xxxxxxxxx`
    - WhatsApp: `xxxxx@g.us`
    - Telegram: `-1001234567890`
-   - Discord: guild ID
-3. **Which LLM model?** (default: `zai/glm-5`) → `--model <MODEL>`
-   - Want different models per agent? → `--model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7'`
-4. **需要 @mention 才回复吗？** → `--require-mention true|false`
-   - `true`（默认）：群里必须 @机器人 才会回复，不 @ 不会触发
-   - `false`：机器人自动响应所有消息，无需 @
-5. **Do you need a session ID for group routing?** → `--session-id <ID>` (optional)
+3. **Per-agent group IDs?** (optional) → `--group-map 'coder=oc_aaa,scout=oc_bbb'`
+   - On Feishu, each sub-agent can bind to a different group
+   - Agents not in the map use the default `--group-id`
+4. **Which LLM model?** (default: `zai/glm-5`) → `--model <MODEL>`
+   - Different models per agent? → `--model-map 'coder=ollama/kimi-k2.5:cloud'`
+5. **需要 @mention 才回复吗？** → `--require-mention true|false`
+   - `true`（默认）：必须 @机器人 才回复
+   - `false`：自动响应所有消息
 
 #### Step 2: Clone and Run Setup
 
@@ -110,13 +111,25 @@ Ask the user these questions:
 git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
 chmod +x setup.sh
-./setup.sh --channel <CHANNEL> --group-id <GROUP_ID> --model <MODEL>
+./setup.sh --channel <CHANNEL> --group-id <GROUP_ID>
 ```
 
 **Examples:**
-- Feishu group: `./setup.sh --channel feishu --group-id oc_b1c331592eaa36d06a7e5df05d08a890`
-- No @mention required: `./setup.sh --require-mention false --channel feishu --group-id oc_xxx`
-- Per-agent models: `./setup.sh --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' --channel feishu --group-id oc_xxx`
+- All agents in one Feishu group:
+  ```bash
+  ./setup.sh --channel feishu --group-id oc_xxx
+  ```
+- Each agent in a different group:
+  ```bash
+  ./setup.sh --channel feishu --group-id oc_default \
+    --group-map 'coder=oc_dev,scout=oc_news,reviewer=oc_review'
+  ```
+- Custom models + no @mention:
+  ```bash
+  ./setup.sh --channel feishu --group-id oc_xxx \
+    --model-map 'coder=ollama/kimi-k2.5:cloud' \
+    --require-mention false
+  ```
 - Agents only (no channel): `./setup.sh --skip-bindings`
 - Dry-run preview: `./setup.sh --dry-run --channel feishu --group-id oc_xxx`
 
@@ -472,7 +485,7 @@ openclaw-agents/
 ├── CONTRIBUTING.md                   # Contribution guidelines
 ├── CHANGELOG.md                      # Version history
 ├── docs/
-│   └── installation.md               # 📖 Full installation guide (for LLM agents)
+│   └── installation.md               # 📖 Full installation guide
 ├── examples/
 │   ├── openclaw.feishu.json          # Feishu config example
 │   ├── openclaw.whatsapp.json        # WhatsApp config example
@@ -502,11 +515,11 @@ openclaw-agents/
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--channel` | Channel type (feishu/whatsapp/telegram/discord/slack) | Interactive prompt |
-| `--group-id` | Group/chat ID for channel binding | Interactive prompt |
-| `--session-id` | Session ID for group routing | None |
+| `--group-id` | Default group ID for all agents | Interactive prompt |
+| `--group-map` | Per-agent group overrides (`id=group_id,...`) | None |
 | `--model` | Default LLM model for all agents | `zai/glm-5` |
 | `--model-map` | Per-agent model overrides (`id=model,...`) | None |
-| `--require-mention` | Require @mention to respond in groups (`true`/`false`) | `true` |
+| `--require-mention` | Require @mention to respond (`true`/`false`) | `true` |
 | `--skip-bindings` | Skip channel binding setup | `false` |
 | `--dry-run` | Preview commands without executing | `false` |
 | `-h, --help` | Show help | — |
