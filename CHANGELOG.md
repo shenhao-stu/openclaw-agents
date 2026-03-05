@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-03-06
+
+### Changed
+- ♻️ **重构 Discord 配置流程**：移除 `setup_discord.py`，将 Discord Client ID 配置逻辑完全集成到 `setup.sh` 中，使用纯 Bash 实现，无需 Python 依赖
+- 📝 **改进文档引用**：在 README.md 和 README_ZH.md 中优化 Discord 文档链接，添加完整配置指南引用
+
+### Added
+- 📖 **Discord 配置完整指南**：新增 `docs/discord-setup.md`，包含 Bot 创建、权限配置、ID 获取、常见问题等详细步骤
+- 🎯 **交互式 Client ID 配置**：setup.sh 现在会自动引导用户为每个 Agent 输入 Discord Client ID
+- 🚨 **自动注入 Mention Guard**：配置过程中自动在 Agent 的 `_soul_source.md` 中注入防 Markdown 表格警告
+
+### Removed
+- 🗑️ 删除 `setup_discord.py`，功能已合并到 `setup.sh`
+
 ## [2.2.0] - 2026-03-02
 
 ### Added

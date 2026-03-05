@@ -267,7 +267,7 @@ Each agent has three core files inside `.agents/<agent_id>/`:
 | **Feishu** (飞书) | `oc_xxxxxxxxx` | `oc_b1c331592eaa36d06a7e5df05d08a890` | [Feishu docs](https://docs.openclaw.ai/channels/feishu) |
 | **WhatsApp** | `xxxxx@g.us` | `120363999999999999@g.us` | [WhatsApp docs](https://docs.openclaw.ai/channels/whatsapp) |
 | **Telegram** | Negative integer | `-1001234567890` | [Telegram docs](https://docs.openclaw.ai/channels/telegram) |
-| **Discord** | Guild ID | `1234567890` | [Discord docs](https://docs.openclaw.ai/channels/discord) |
+| **Discord** | Guild ID | `1234567890` | [配置指南](docs/discord-setup.md) · [官方文档](https://docs.openclaw.ai/channels/discord) |
 | **Slack** | Team + Channel | `T0123/C0123` | [Slack docs](https://docs.openclaw.ai/channels/slack) |
 
 ### Group Policy

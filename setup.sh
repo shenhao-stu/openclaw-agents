@@ -442,8 +442,105 @@ BJSON
     cp "${tmp_file}" "${OPENCLAW_CONFIG}"
   fi
   rm -f "${tmp_file}"
-  success "Config openclaw.json updated"
+  
+	if [[ "${CHANNEL}" == "discord" ]]; then
+		step "Discord Client ID Configuration"
+		echo -e "\n${YELLOW}╔════════════════════════════════════════════════════════════════╗${NC}"
+		echo -e "${YELLOW}║${NC} ${BOLD}Discord 多 Agent 协作配置${NC}                                    ${YELLOW}║${NC}"
+		echo -e "${YELLOW}╠════════════════════════════════════════════════════════════════╣${NC}"
+		echo -e "${YELLOW}║${NC} Discord 的 @mention 机制与飞书/Telegram 不同：              ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC} - 飞书/Telegram: @planner 可直接触发                         ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC} - Discord: 需要 <@123456789012345678> 格式的数字 ID           ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC}                                                                ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC} ${CYAN}如何获取 Discord Client ID:${NC}                               ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC}  1. 打开 Discord 设置 -> 高级 -> 启用「开发者模式」          ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC}  2. 右键点击 Agent 的头像 -> 「复制用户 ID」                 ${YELLOW}║${NC}"
+		echo -e "${YELLOW}║${NC}  3. 在下方粘贴对应的 ID                                       ${YELLOW}║${NC}"
+		echo -e "${YELLOW}╚════════════════════════════════════════════════════════════════╝${NC}"
+		echo ""
+		echo -e "${DIM}(直接按 Enter 跳过，稍后可手动编辑 openclaw.json)${NC}\n"
+		
+		declare -A DISCORD_IDS
+		for entry in "${CORE_AGENTS[@]}"; do
+			IFS='|' read -r id name emoji role <<< "${entry}"
+			echo -en " ${BOLD}${emoji} ${name}${NC} 的 Discord Client ID: "
+			read -r discord_id
+			if [[ -n "${discord_id}" ]]; then
+				DISCORD_IDS["${id}"]="${discord_id}"
+			fi
+		done
+		
+		if [[ ${#DISCORD_IDS[@]} -gt 0 ]]; then
+			step "Updating Discord mention patterns"
+			local discord_agents_json='['
+			local first=true
+			for entry in "${CORE_AGENTS[@]}"; do
+				IFS='|' read -r id name emoji role <<< "${entry}"
+				local discord_id="${DISCORD_IDS[${id}]:-}"
+				[[ "${first}" == true ]] && first=false || discord_agents_json+=','
+				local mention_patterns
+				if [[ -n "${discord_id}" ]]; then
+					mention_patterns="[\"<@${discord_id}>\", \"@${id}\", \"${id}\", \"@${name}\"]"
+				else
+					mention_patterns="[\"@${id}\", \"${id}\", \"@${name}\"]"
+				fi
+				discord_agents_json+=$(cat <<DAJSON
+{
+  "id": "${id}",
+  "groupChat": {
+    "mentionPatterns": ${mention_patterns},
+    "historyLimit": 50
+  }
 }
+DAJSON
+)
+			done
+			discord_agents_json+=']'
+			
+			local tmp_discord
+			tmp_discord="$(mktemp)"
+			jq --argjson discord_agents "${discord_agents_json}" '
+				.agents.list = [.agents.list[] | 
+					(.id as $aid | 
+						($discord_agents | map(.id) | index($aid)) as $idx |
+						if $idx != null then
+							. * ($discord_agents[$idx])
+						else
+							.
+						end
+					)
+				]
+			' "${OPENCLAW_CONFIG}" > "${tmp_discord}"
+			cp "${tmp_discord}" "${OPENCLAW_CONFIG}"
+			rm -f "${tmp_discord}"
+			success "Discord mention patterns configured"
+		fi
+		
+		step "Injecting Discord Mention Guard"
+		for entry in "${CORE_AGENTS[@]}"; do
+			IFS='|' read -r id name emoji role <<< "${entry}"
+			local workspace="${OPENCLAW_HOME}/workspace-${id}"
+			local soul_src="${workspace}/_soul_source.md"
+			
+			if [[ -f "${soul_src}" ]]; then
+				if ! grep -q "Discord 通信极度重要警告" "${soul_src}" 2>/dev/null; then
+					cat >> "${soul_src}" << 'SOULWARN'
+
+## [ Discord 通信极度重要警告 ]
+🚨🚨🚨 极度重要警告 🚨🚨🚨
+当你需要指派任务给其他 Agent 时，你 **绝对不能** 只把他们的 `<@数字ID>` 写在 Markdown 表格或者代码块 (```) 里！
+如果你把 `<@数字ID>` 放在表格里，Discord 系统就会判定那是普通文本，**对方根本收不到任何消息，永远不会回复你！**
+你必须在回复的最后，像人类一样，用一段没有任何格式的纯文本直接说：
+「<@1478488144499183749> 和 <@1478488715226648770>，请立刻开始执行上述任务！」
+如果不这么做，你的任务指派将 **必定失败**。
+SOULWARN
+					success "Mention Guard injected for ${emoji} ${name}"
+				fi
+			fi
+		done
+	fi
+
+	success "Config openclaw.json updated"
 
 summary() {
   echo ""
