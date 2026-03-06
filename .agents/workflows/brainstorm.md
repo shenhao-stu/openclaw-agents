@@ -13,6 +13,12 @@ description: 快速 Idea 头脑风暴会议流程
 - 用户请求：`/brainstorm`
 - Planner 判断需要新的研究方向
 
+## Discord 线程建议
+- 父线程：保留和用户的方向确认、最终选择、阶段总结
+- 子线程：用于 Ideator / Surveyor / Critic 的多轮来回讨论
+- 当某个候选 Idea 进入深入推演时，Planner 应优先为该 Idea 开单独子线程
+- 子线程结束时，Planner 需要回到父线程给出 Top 结论和下一步
+
 ---
 
 ## Step 1: 上下文准备（5 分钟）

@@ -1,106 +1,341 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
   <br/>
-  <img src="https://img.shields.io/badge/version-2.3.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.1.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
-  <img src="https://img.shields.io/badge/channels-feishu%20%7C%20whatsapp%20%7C%20telegram%20%7C%20discord-purple?style=flat-square" alt="Channels">
+  <img src="https://img.shields.io/badge/discord-thread%20orchestration-purple?style=flat-square" alt="Discord Threads">
 </p>
 
-<h1 align="center">🐾 OpenClaw Agents (多智能体集群)</h1>
+<h1 align="center">🐾 OpenClaw Agents（多智能体集群）</h1>
 
 <p align="center">
-  <strong>专为 <a href="https://docs.openclaw.ai">OpenClaw</a> 打造的一键式多智能体部署脚手架</strong>
+  <strong>OpenClaw agent fleet + Discord 子线程协作 SOP</strong>
   <br/>
-  <em>只需一条命令，即可在 60 秒内将整个 AI 研究团队部署到你的聊天群组中。默认模型：<code>zai/glm-5</code></em>
+  <em>先用 OpenClaw 配好多智能体，再在 Discord 中跑 planner 主导的父线程 / 子线程协作。</em>
 </p>
 
 <p align="center">
-<a href="#-安装与部署">安装与部署</a> •
-<a href="#-架构设计">架构设计</a> •
-<a href="#-团队成员">团队成员</a> •
-<a href="#-渠道支持">渠道支持</a> •
-<a href="#-自定义工作流">自定义工作流</a> •
-<a href="./README.md">🇺🇸 English Version</a>
+  <a href="#-快速开始">快速开始</a> •
+  <a href="#-工作原理">工作原理</a> •
+  <a href="#-discord-协作模型">Discord 协作模型</a> •
+  <a href="#-团队成员">团队成员</a> •
+  <a href="#-planner-子线程-sop">Planner 子线程 SOP</a> •
+  <a href="#-仓库结构">仓库结构</a> •
+  <a href="./README.md">English Version</a>
 </p>
 
 ---
 
-## ✨ 核心特性
+## ✨ 这个仓库现在到底是什么
 
-**OpenClaw Agents** 是一个开箱即用的多智能体预配置包。它只需一条命令，就能配置 **9 个专业化 AI 角色** 作为一个协同研究团队——并自动处理身份、工作区、路由规则以及渠道绑定。
+**OpenClaw Agents** 负责的是 **OpenClaw 智能体舰队本身**：
 
-### 包含的内容
+- 8 个核心子 Agent + 1 个主 Agent 身份
+- 每个 Agent 的独立 workspace
+- 自我合并用的 `BOOTSTRAP.md`
+- OpenClaw 的本地 / 渠道路由配置
+- Planner 为中心的协作规范
 
-- 🤖 **9 个预配置 Agent**，配备直观的 emoji 身份标识（在聊天中极具辨识度）
-- 📝 **自动自我融合**（Self-merge）：通过下发 `BOOTSTRAP.md` 实现无损首次启动
-- 🔗 **双部署模式**: 
-  - **渠道模式 (Channel Mode)**: 自动路由到 Feishu、WhatsApp、Telegram 或 Discord（支持每人单群）
-  - **本地模式 (Local Workflow Mode)**: 无需外部渠道，Agent 之间通过原生的 `agentToAgent` 工具直接在终端内通信。
-- 🌐 **Discord 深度优化**: 配置脚本会自动处理 Discord 苛刻的 `<@ID>` 提及规则，并在提示词层面注入“防吞噬警告”。
+而 **外部 Discord 运行时** 负责的是 **Discord 这一层的线程 / session 能力**：
 
-## 🚀 安装与部署
+- Discord Bot
+- 项目频道
+- 任务线程
+- 线程与 session 的映射
+- `send --channel / --thread / --session` 这类继续对话能力
 
-### 1. 前置准备
-- 确保已正确安装并配置了 [OpenClaw CLI](https://docs.openclaw.ai)。
-- （可选）提前获取你想要的 Chat Group ID（例如飞书 `oc_...`, Telegram `-100...`）。
-- （如果使用 Discord）在 Discord 设置中开启 **开发者模式 (Developer Mode)**，以便后续右键复制机器人的 Client ID。
+所以这个分支的核心原则是：
 
-### 2. 运行安装向导
+- **OpenClaw Agents = agent fleet**
+- **外部 Discord 运行时 = Discord thread/session runtime**
+
+这次文档重构的目标就是把这个边界写清楚，不再混淆。
+
+---
+
+## 🚀 快速开始
 
 ```bash
-git clone git@github.com:shenhao-stu/openclaw-agents.git
+git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
-
-# 推荐：运行交互式配置向导
+chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh
-
-# 或者：通过参数跳过提问 (以飞书为例)
-# ./setup.sh --mode channel --channel feishu --group-id oc_xxx --require-mention false
-# ./setup.sh --mode local
 ```
 
-*如果你在向导中选择了 **discord**，系统会自动引导你配置每个 Agent 的 Discord Client ID。*
+如果你还想在 Discord 里跑 planner 子线程，就配置好你自己的 Discord 运行时，然后通过这个仓库自带的派发脚本创建或继续线程：
 
-### 3. 重启网关使配置生效
 ```bash
-openclaw gateway restart
+./scripts/discord-thread-dispatch.sh --channel <project-channel-id> --prompt "为这个任务创建一个 planner 子线程" --dry-run
 ```
+
+建议按顺序阅读：
+
+- `docs/installation.md`
+- `docs/discord-setup.md`
+- `docs/discord-thread-sop.md`
+
+---
+
+## 🧠 工作原理
+
+### 第一层：OpenClaw 舰队配置
+
+`./setup.sh` 会：
+
+1. 检查 `openclaw` 和 `jq`
+2. 创建 8 个核心子 Agent
+3. 在 `~/.openclaw/workspace-<id>` 下创建工作区
+4. 下发 `_soul_source.md` / `_user_source.md` / `_agent_source.md` / `BOOTSTRAP.md`
+5. 把 workflow 参考追加到每个 Agent 的 `AGENTS.md`
+6. 更新 `~/.openclaw/openclaw.json`
+7. 如果选择 Discord，则补充真实 `<@...>` mention 规则并注入 mention guard
+
+### 第二层：Discord 线程 / Session 运行时
+
+外部 Discord 运行时提供：
+
+- 一个项目对应一个 Discord channel
+- 一个任务对应一个 Discord thread
+- `send --channel` 创建新任务线程
+- `send --thread` 或 `--session` 继续已有线程
+- `--worktree` 提供隔离执行环境
+- `--notify-only` 提供只建线程不立即执行的壳
+
+也就是说，这个仓库现在明确采用：
+
+- OpenClaw 负责 agent fleet
+- 外部 Discord 运行时负责 Discord 线程协作
+
+---
+
+## 💬 Discord 协作模型
+
+建议你始终用下面这个心智模型：
+
+- **Discord channel = 项目**
+- **Discord thread = 任务 / session**
+- **父线程 = planner 面向用户的总控线程**
+- **子线程 = 某个具体子任务的执行线程**
+
+### 为什么这样设计
+
+这个仓库本身没有 Discord bot runtime，也没有原生的“创建子区”实现。
+
+所以最真实、最稳妥的做法不是硬吹一个并不存在的功能，而是：
+
+1. 用 OpenClaw 把 agent fleet 配好
+2. 用你自己的 Discord 运行时把 channel/thread/session 跑起来
+3. 让 planner 管理父线程
+4. 让 coder / reviewer / surveyor 等在子线程中完成细节工作
+5. 最后由 planner 回到父线程给用户总结
+
+---
 
 ## 🤖 团队成员
 
-| Agent | 核心职责 | 需要上游谁的数据 | 产出流向下游谁 |
-| :--- | :--- | :--- | :--- |
-| `main` | OpenClaw 根节点（管理/配置） | 你（用户） | 所有人 |
-| `planner` | 统筹规划、跨 Agent 协调 | 所有人 | 所有人 |
-| `ideator` | 构思点子、评估新颖性 | `surveyor`, `critic` | `critic`, `coder` |
-| `critic` | 把关品味、进行"SHARP"苛刻批评 | `ideator`, `writer` | `planner` |
-| `surveyor` | 文献检索、发现研究空白 (Gap) | `scout` | `ideator`, `writer` |
-| `coder` | 代码实现、验证实验 | `ideator`, `planner` | `writer` |
-| `writer` | 学术撰写、逻辑讲故事 | `coder`, `surveyor` | `reviewer` |
-| `reviewer` | 挑毛病、提出修改建议、模拟审稿 | `writer` | `writer` |
-| `scout` | 追踪前沿趋势 (arXiv 等) | - | `surveyor`, `planner` |
+| Agent | ID | 核心职责 |
+|---|---|---|
+| 🐾 OpenClaw | `main` | 主控、审计、最终仲裁 |
+| 🧠 Planner | `planner` | 任务拆解、协作调度、进度汇总 |
+| 💡 Ideator | `ideator` | 生成想法、塑造贡献点 |
+| 🎯 Critic | `critic` | SHARP 品鉴、反模式审查 |
+| 📚 Surveyor | `surveyor` | 文献搜索、research gap 定位 |
+| 💻 Coder | `coder` | 实现、实验、修复 |
+| ✍️ Writer | `writer` | 写作、表述、整理 |
+| 🔍 Reviewer | `reviewer` | 评审、质检、否决 |
+| 📰 Scout | `scout` | 趋势监控、论文情报 |
 
-## 🏗 架构设计：Agent Self-Merge
+### Planner 为什么最关键
 
-为了避免暴力覆盖你系统中原有的配置文件，本项目使用了安全的“自我融合（Self-merge）”策略：
+在这个仓库里，Planner 本来就是：
 
-1. `setup.sh` 仅在 `openclaw.json` 中配置模型与群组路由。
-2. 它会将一份 `BOOTSTRAP.md` 引导文件部署到每个人的工作区。
-3. 当 Agent 第一次被唤醒时，它会读取 `BOOTSTRAP.md` 和对应的 `_soul_source.md` 预设，然后智能地将这套多智能体人设合并进它自己的 `SOUL.md` 中。
+- 统筹者
+- 调度中心
+- 进度板维护者
+- 用户汇报出口
 
-## 📡 渠道支持
+因此，Planner 也是最自然的 **父线程 owner**。
 
-- **Feishu / Slack / Telegram / WhatsApp**: 使用标准的 OpenClaw `bindings` 路由。你可以把他们全塞进一个大群里，也可以通过 `--group-map 'coder=oc_1,writer=oc_2'` 把他们拆分。
-- **Discord**: Discord 拥有特殊的纯数字提及系统(`<@ID>`)，因此如果在 `setup.sh` 选择了 Discord，它将自动引导你配置每个 Agent 的 Client ID，并在 Agent 工作区内植入强制性的防格式错乱警告（禁止他们把 ID 放在代码块里）。详见 [Discord 配置完整指南](docs/discord-setup.md)。
+---
 
-## 🛠 高级自定义
+## 🧵 Planner 子线程 SOP
 
-### 模型覆盖
+### 1）立刻创建一个子线程
+
 ```bash
-# 为所有 Agent 指定默认模型
-./setup.sh --model "github-copilot/gemini-3.1-pro-preview"
-
-# 为不同的 Agent 分别指定模型
-./setup.sh --model-map "planner=zai/glm-5,coder=anthropic/claude-3-5-sonnet"
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --agent planner \
+  --name "planner: auth bug triage" \
+  --prompt "开一个子线程，在里面协调 coder 和 reviewer，完成后回父线程总结最终结果。"
 ```
+
+### 2）先建一个 notify-only 的线程壳
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --notify-only \
+  --name "planner: release review" \
+  --prompt "Planner 子线程已创建。请在这里继续执行，最终结果回父线程汇总。"
+```
+
+### 3）继续已有子线程
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --thread <thread-id> \
+  --agent coder \
+  --prompt "继续上一个检查点，并给出 patch summary。"
+```
+
+### 4）按 session ID 继续
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --session <session-id> \
+  --agent reviewer \
+  --prompt "审查最新改动，并区分 blocker 和 non-blocker。"
+```
+
+### 5）用 worktree 做隔离执行
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --agent coder \
+  --worktree issue-123 \
+  --name "issue-123 fix" \
+  --prompt "在独立 worktree 中修复这个问题，并汇报测试状态。"
+```
+
+完整版本见：`docs/discord-thread-sop.md`
+
+---
+
+## ⚠️ Discord mention 最大坑点
+
+Discord 的真实 mention 形式是：
+
+```text
+<@123456789012345678>
+```
+
+不要只把它们塞进表格或代码块。
+
+### 错误示例
+
+```markdown
+| Agent | Task |
+|---|---|
+| <@123456789012345678> | 修复登录问题 |
+```
+
+### 正确示例
+
+```text
+<@123456789012345678>，请立刻开始上面的任务。
+```
+
+这就是为什么 `setup.sh` 在 Discord 模式下会自动往每个 Agent 的提示词里注入 mention guard。
+
+---
+
+## 🔧 配置模式
+
+### 本地模式
+
+```bash
+./setup.sh --mode local
+```
+
+适合只想用 OpenClaw 原生 `agentToAgent` 协作的人。
+
+### 渠道模式
+
+```bash
+./setup.sh --mode channel --channel feishu --group-id oc_xxx
+./setup.sh --mode channel --channel telegram --group-id -1001234567890
+./setup.sh --mode channel --channel discord --group-id 123456789012345678
+```
+
+常用组合：
+
+```bash
+./setup.sh \
+  --mode channel \
+  --channel discord \
+  --group-id 123456789012345678 \
+  --model zai/glm-5 \
+  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' \
+  --require-mention true
+```
+
+---
+
+## ✅ 验证方式
+
+### OpenClaw 侧
+
+```bash
+openclaw agents list --bindings
+openclaw gateway
+```
+
+### Discord 运行时侧
+
+确认你的外部 Discord 运行时已经在线，并且能正确连接项目频道 / 线程。
+
+然后确认：
+
+- Bot 在线
+- 项目频道已建立
+- 发消息会创建或继续线程
+- `./scripts/discord-thread-dispatch.sh --dry-run ...` 能生成正确命令
+
+---
+
+## 📁 仓库结构
+
+```text
+openclaw-agents/
+├── setup.sh                     # OpenClaw fleet 配置脚本
+├── agents.yaml                  # manifest / 元数据参考
+├── docs/
+│   ├── installation.md          # 安装指南
+│   ├── discord-setup.md         # Discord 配置指南
+│   └── discord-thread-sop.md    # 父线程/子线程 SOP
+├── scripts/
+│   └── discord-thread-dispatch.sh # 通用 Discord 线程派发包装
+├── examples/
+│   ├── openclaw.local.json
+│   ├── openclaw.feishu.json
+│   ├── openclaw.telegram.json
+│   └── openclaw.whatsapp.json
+└── .agents/
+    ├── planner/
+    ├── ideator/
+    ├── critic/
+    ├── surveyor/
+    ├── coder/
+    ├── writer/
+    ├── reviewer/
+    ├── scout/
+    └── workflows/
+```
+
+---
+
+## 📚 相关文档
+
+- [Installation](docs/installation.md)
+- [Discord Setup Guide](docs/discord-setup.md)
+- [Discord Thread SOP](docs/discord-thread-sop.md)
+- [English README](README.md)
+
+---
+
+## 📄 License
+
+[MIT](LICENSE)

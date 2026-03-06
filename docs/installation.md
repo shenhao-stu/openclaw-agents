@@ -1,245 +1,186 @@
 # Installation
 
+This repository now has a **two-layer installation story**:
+
+1. **OpenClaw layer** — `./setup.sh` provisions the agent fleet and OpenClaw routing.
+2. **Discord layer** — an external Discord runtime provides the bot, project channels, and thread/session runtime.
+
+If you only want local OpenClaw collaboration, layer 1 is enough.
+If you want Discord threads and planner child-thread workflows, you need both layers.
+
+---
+
 ## For Humans
 
-Paste this into your LLM agent session (Claude Code, Antigravity, Cursor, OpenCode, etc.):
-
-```
-Set up the OpenClaw multi-agent system by following:
-curl -fsSL https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
-```
-
-**Alternative — do it yourself:**
+Clone the repository and run the setup wizard:
 
 ```bash
 git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
-chmod +x setup.sh
+chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh
 ```
 
-Follow the interactive prompts to select your channel and group ID. After setup, start the gateway with `openclaw gateway`.
+Then:
+
+- for local-only mode, use `openclaw chat planner`
+- for Discord mode, follow `docs/discord-setup.md`
+- for planner child-thread workflows, follow `docs/discord-thread-sop.md`
 
 ---
 
 ## For LLM Agents
 
-> **IMPORTANT: Use `curl` to fetch this file, NOT WebFetch or other summarization tools.**
-> WebFetch will summarize this content and lose critical CLI flags, config examples, and JSON structures.
-> Always use:
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
-> ```
-
-If you're an LLM Agent helping set up OpenClaw Agents, welcome! You'll help your user deploy a fleet of 9 specialized AI agents onto their OpenClaw instance. Follow these steps exactly.
-
-### Step 0: Prerequisites
-
-Check that the OpenClaw CLI is installed:
+> **IMPORTANT:** Use `curl` to fetch this file, not a summarizing fetcher.
 
 ```bash
-if command -v openclaw &> /dev/null; then
-    echo "✅ OpenClaw $(openclaw --version) is installed"
+curl -fsSL https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
+```
+
+### Step 0 — Verify prerequisites
+
+```bash
+if command -v openclaw >/dev/null 2>&1; then
+  echo "✅ OpenClaw $(openclaw --version) is installed"
 else
-    echo "❌ OpenClaw is not installed. Installing..."
-    npm install -g openclaw@latest
-    openclaw onboard --install-daemon
+  echo "❌ OpenClaw is not installed"
+  echo "Install with: npm install -g openclaw@latest"
+  echo "Then run: openclaw onboard --install-daemon"
+fi
+
+if command -v jq >/dev/null 2>&1; then
+  echo "✅ jq is installed"
+else
+  echo "❌ jq is required"
 fi
 ```
 
-If OpenClaw isn't installed, guide the user to install it first:
-- Docs: https://docs.openclaw.ai/start/quickstart
-- Install: `npm install -g openclaw@latest`
-- Onboard: `openclaw onboard --install-daemon`
+If the user wants Discord child-thread workflows, also verify:
 
-Verify the Feishu plugin is installed (if using Feishu):
 ```bash
-openclaw plugins install @openclaw/feishu
+echo "✅ Make sure your chosen Discord runtime CLI is installed"
 ```
 
-### Step 1: Ask User About Configuration
+---
 
-Ask the user these questions to determine setup flags:
-
-1. **Which channel do you use for chat?**
-   - **Feishu (飞书)** → `--channel feishu`
-   - **WhatsApp** → `--channel whatsapp`
-   - **Telegram** → `--channel telegram`
-   - **Discord** → `--channel discord`
-   - **Slack** → `--channel slack`
-   - **None / skip** → `--skip-bindings`
-
-2. **What is your group/chat ID?**
-   - Feishu group IDs look like: `oc_b1c331592eaa36d06a7e5df05d08a890`
-   - WhatsApp group IDs look like: `120363999999999999@g.us`
-   - Telegram group IDs look like: `-1001234567890`
-   - Discord guild IDs look like: `1234567890`
-   - If user doesn't know, run: `openclaw channels <channel> groups` to list IDs
-   - → `--group-id <ID>`
-
-3. **Which LLM model do you want to use?** (optional)
-   - Default: `zai/glm-5`
-   - Other options: `ollama/kimi-k2.5:cloud`, `zai/glm-4.7`, `zai/glm-4.7-flash`, etc.
-   - → `--model <MODEL>`
-
-4. **Do you want different models per agent?** (optional)
-   - Example: `--model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7'`
-   - If not specified, all agents use the `--model` default
-
-4. **Do you need a session ID for group routing?** (optional)
-   - Usually not needed for basic setups
-   - → `--session-id <ID>`
-
-### Step 2: Clone the Repository
+### Step 1 — Clone the repository
 
 ```bash
 git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
-chmod +x setup.sh
+chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ```
 
-### Step 3: Run the Setup Script
+---
 
-Based on the user's answers, construct the command:
+### Step 2 — Decide the deployment mode
+
+#### Option A — Local Workflow Mode
+
+Use when the user only wants OpenClaw-native agent collaboration:
 
 ```bash
-./setup.sh --channel <CHANNEL> --group-id <GROUP_ID> [--model <MODEL>] [--session-id <ID>]
+./setup.sh --mode local
 ```
 
-**Examples:**
+This enables `agentToAgent` routing centered on `planner`.
 
-- User has Feishu:
-  ```bash
-  ./setup.sh --channel feishu --group-id oc_b1c331592eaa36d06a7e5df05d08a890
-  ```
+#### Option B — Channel Mode
 
-- User has WhatsApp:
-  ```bash
-  ./setup.sh --channel whatsapp --group-id 120363999999999999@g.us
-  ```
-
-- User has Telegram with custom model:
-  ```bash
-  ./setup.sh --channel telegram --group-id -1001234567890 --model ollama/kimi-k2.5:cloud
-  ```
-
-- User wants per-agent models:
-  ```bash
-  ./setup.sh --model zai/glm-5 --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' --channel feishu --group-id oc_xxx
-  ```
-
-- User wants agents only (no channel):
-  ```bash
-  ./setup.sh --skip-bindings
-  ```
-
-- Preview mode (no changes):
-  ```bash
-  ./setup.sh --dry-run --channel feishu --group-id oc_xxx
-  ```
-
-The setup script will:
-1. ✅ Verify `openclaw` CLI is available
-2. 🤖 Create 8 sub-agents via `openclaw agents add <id> --model <model> --workspace <path>`
-3. 🎨 Set visual identities via `openclaw agents set-identity --agent <id> --name "<emoji> <name>"`
-4. 📝 Deploy `soul.md` / `agent.md` / `user.md` into each agent's workspace
-5. 🔗 Generate `openclaw.json` with:
-   - `agents.list` — all agents with `identity`, `mentionPatterns`, `historyLimit`
-   - `agents.defaults.sandbox` — group session isolation (mode: `non-main`, scope: `session`)
-   - `bindings` — route each agent to the target group
-   - `channels.<channel>` — `groupPolicy: "open"`, `requireMention: true`
-   - `messages.groupChat.historyLimit` — global context window
-6. ✅ Run verification checks
-
-### Step 4: Verify Setup
-
-After the script completes, verify everything is working:
+Use when the user wants OpenClaw bindings to a chat platform:
 
 ```bash
-# List all agents and their bindings
+./setup.sh --mode channel --channel <CHANNEL> --group-id <GROUP_ID>
+```
+
+Examples:
+
+```bash
+./setup.sh --mode channel --channel feishu --group-id oc_xxx
+./setup.sh --mode channel --channel telegram --group-id -1001234567890
+./setup.sh --mode channel --channel discord --group-id 123456789012345678
+```
+
+Optional flags:
+
+```bash
+./setup.sh \
+  --mode channel \
+  --channel discord \
+  --group-id 123456789012345678 \
+  --model zai/glm-5 \
+  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' \
+  --require-mention true
+```
+
+---
+
+### Step 3 — Understand what `setup.sh` will configure
+
+The script will:
+
+1. verify `openclaw` and `jq`
+2. create 8 sub-agents
+3. create per-agent workspaces under `~/.openclaw/workspace-<id>`
+4. deploy `_soul_source.md`, `_user_source.md`, `_agent_source.md`, and `BOOTSTRAP.md`
+5. append workflow references into each generated `AGENTS.md`
+6. update `~/.openclaw/openclaw.json`
+7. if `discord` is selected, optionally prepend real `<@...>` mention IDs and inject a Discord mention guard
+
+---
+
+### Step 4 — Verify OpenClaw setup
+
+```bash
 openclaw agents list --bindings
-```
-
-Expected output should show 8 agents (planner, ideator, critic, surveyor, coder, writer, reviewer, scout) with their channel bindings.
-
-```bash
-# Check channel connectivity
-openclaw channels status --probe
-```
-
-### Step 5: Start the Gateway
-
-```bash
 openclaw gateway
 ```
 
-The gateway will start listening for messages from the configured channel.
+If this is local mode, you can test with:
 
-### Step 6: Test in Chat
-
-Send a message in the configured group chat. If using Feishu with `requireMention: true` (default), @mention the bot to trigger a response.
-
-Each agent has a distinct emoji identity visible in the chat:
-
-| Agent | Identity in Chat |
-|-------|-----------------|
-| Main | 🐾 OpenClaw |
-| Planner | 🧠 Planner |
-| Ideator | 💡 Ideator |
-| Critic | 🎯 Critic |
-| Surveyor | 📚 Surveyor |
-| Coder | 💻 Coder |
-| Writer | ✍️ Writer |
-| Reviewer | 🔍 Reviewer |
-| Scout | 📰 Scout |
-
-### Step 7: Understanding the Agent System
-
-The 9 agents form a collaborative research team:
-
-- **🧠 Planner** orchestrates all tasks and manages the project timeline
-- **💡 Ideator** and **🎯 Critic** work in adversarial collaboration — Ideator generates ideas, Critic evaluates them with the SHARP framework (must score ≥ 18 to proceed)
-- **📚 Surveyor** handles literature review and research gap identification
-- **💻 Coder** implements algorithms and runs experiments
-- **✍️ Writer** and **🔍 Reviewer** iterate on paper writing — Reviewer has veto power
-- **📰 Scout** monitors daily paper releases and trends
-
-The workflow system connects these agents through four slash commands:
-- `/paper-pipeline` — Full paper production (9 phases with taste gates)
-- `/daily-digest` — Daily paper summarization
-- `/brainstorm` — Rapid idea generation
-- `/rebuttal` — Review response preparation
-
-### ⚠️ Warning
-
-**Do not rename or remove the 8 core agent IDs** (`planner`, `ideator`, `critic`, `surveyor`, `coder`, `writer`, `reviewer`, `scout`). These are protected identifiers referenced throughout the workflow system and `soul.md` definitions.
-
-If you need to add more agents, use the custom agent mechanism — add to `agents.yaml` and re-run `./setup.sh`.
-
-### Step 8: Verification and Next Steps
-
-Read through the steps above again and confirm you've completed everything:
-
-- [ ] OpenClaw CLI installed and `onboard` completed
-- [ ] Repository cloned
-- [ ] `setup.sh` executed successfully
-- [ ] `openclaw agents list --bindings` shows all agents
-- [ ] Gateway started with `openclaw gateway`
-- [ ] Test message sent in chat group
-
-#### Say 'Setup Complete! 🐾' to the user
-
-Tell the user: **Setup Complete! 🐾** Your OpenClaw multi-agent research team is ready. Try `/paper-pipeline` to start your first paper, or `/daily-digest` for today's AI paper summary.
-
-#### Ask for a Star ⭐
-
-After everything is set up and working, ask the user:
-
-> "If you found this helpful, would you like to star the repository? It helps the project grow! ⭐"
-
-If the user agrees:
 ```bash
-gh api --silent --method PUT /user/starred/shenhao-stu/openclaw-agents > /dev/null 2>&1 || true
+openclaw chat planner
 ```
 
-**Important**: Only run the star command if the user explicitly says yes. Never run it automatically.
+---
+
+### Step 5 — If Discord is required, install and run your Discord runtime
+
+For Discord thread/session orchestration, run your chosen external Discord runtime.
+
+Once it is running, use this repository's helper to create or continue task threads:
+
+```bash
+./scripts/discord-thread-dispatch.sh --channel <project-channel-id> --prompt "Start a planner child thread for this task" --dry-run
+./scripts/discord-thread-dispatch.sh --thread <thread-id> --prompt "Continue from the last checkpoint" --dry-run
+./scripts/discord-thread-dispatch.sh --session <session-id> --prompt "Summarize the current state" --dry-run
+```
+
+See:
+
+- `docs/discord-setup.md`
+- `docs/discord-thread-sop.md`
+
+---
+
+### Step 6 — Operator checklist
+
+Before declaring success, verify:
+
+- [ ] OpenClaw CLI installed
+- [ ] `jq` installed
+- [ ] repository cloned
+- [ ] `./setup.sh` completed successfully
+- [ ] `openclaw agents list --bindings` works
+- [ ] if Discord is used: your external Discord runtime is installed and running
+- [ ] if child-thread workflows are needed: `scripts/discord-thread-dispatch.sh` can render a valid dry-run command
+
+Example dry run:
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel 123456789012345678 \
+  --agent planner \
+  --prompt "Create a child thread for auth bug triage" \
+  --dry-run
+```

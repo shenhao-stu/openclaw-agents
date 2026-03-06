@@ -1,577 +1,335 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
   <br/>
-  <img src="https://img.shields.io/badge/version-2.2.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.1.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
-  <img src="https://img.shields.io/badge/channels-feishu%20%7C%20whatsapp%20%7C%20telegram%20%7C%20discord-purple?style=flat-square" alt="Channels">
+  <img src="https://img.shields.io/badge/discord-thread%20orchestration-purple?style=flat-square" alt="Discord Threads">
 </p>
 
 <h1 align="center">🐾 OpenClaw Agents</h1>
 
 <p align="center">
-  <strong>One-command multi-agent initialization for <a href="https://docs.openclaw.ai">OpenClaw</a></strong>
+  <strong>OpenClaw agent fleet + Discord thread orchestration SOP</strong>
   <br/>
-  <em>Ship an entire AI agent fleet to your chat group in 60 seconds. Default model: <code>zai/glm-5</code></em>
+  <em>Provision a multi-agent team with OpenClaw, then run planner-led Discord parent-thread / child-thread collaboration.</em>
 </p>
 
 <p align="center">
-  <a href="#-installation">Installation</a> •
-  <a href="#-architecture">Architecture</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-how-it-works">How It Works</a> •
+  <a href="#-discord-model">Discord Model</a> •
   <a href="#-agents">Agents</a> •
-  <a href="#-channel-support">Channels</a> •
-  <a href="#-workflows">Workflows</a> •
-  <a href="#-customization">Customization</a> •
-  <a href="#-contributing">Contributing</a>
+  <a href="#-planner-child-thread-sop">Planner Child-Thread SOP</a> •
+  <a href="#-repository-structure">Repository Structure</a> •
+  <a href="./README_ZH.md">简体中文</a>
 </p>
 
 ---
 
-## ✨ What Is This?
+## ✨ What this repository is
 
-**OpenClaw Agents** is a ready-to-deploy multi-agent configuration kit for [OpenClaw](https://docs.openclaw.ai). It provisions **9 specialized AI agents** as a collaborative team — complete with identities, workspace files, routing rules, and channel bindings — using a single setup command.
+**OpenClaw Agents** is a ready-to-run agent fleet for OpenClaw.
 
-### What You Get
+It gives you:
 
-- 🤖 **9 pre-configured agents** with rich emoji identities for instant recognition in chat
-- 📝 **Agent self-merge** — deploys `BOOTSTRAP.md` for intelligent first-run setup
-- 🔗 **Two Deployment Modes**: 
-  - **Channel Mode**: auto-routes agents to Feishu, WhatsApp, Telegram, Discord (supports individual groups)
-  - **Local Workflow Mode**: no channel required, agents communicate directly via `agentToAgent` tool
-- 📋 **4 workflow templates** — Paper Pipeline, Daily Digest, Brainstorm, Rebuttal
-- ⚔️ **Adversarial collaboration** — Ideator↔Critic and Writer↔Reviewer creative tension
-- 🎯 **SHARP taste gates** — quality checkpoints enforced by the Critic agent
-- 🛡️ **Safe merge** — appends agents to existing config, never overwrites your main agent
-- 🎛️ **Flexible model** — unified model or per-agent customization via `--model-map`
-- 🧩 **Extensible** — add custom agents via `agents.yaml`
+- 8 core sub-agents + 1 main orchestrator identity
+- per-agent workspaces
+- bootstrap files for self-merge
+- OpenClaw routing config for local or channel mode
+- planner-centered collaboration patterns
+- a documented Discord workflow built around **parent-thread / child-thread collaboration**
+
+The key design decision in this branch is simple:
+
+- **OpenClaw Agents** handles the **agent fleet**
+- **An external Discord runtime** handles the **Discord bot, channels, threads, and session transport**
+
+That split is deliberate and truthful.
 
 ---
 
-## 📦 Installation
-
-### For Humans
-
-Paste this into your LLM agent session (Claude Code, Antigravity, Cursor, etc.):
-
-```
-Fetch the OpenClaw Agents installation guide and set up the multi-agent system by following:
-curl -s https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
-```
-
-Or just run it yourself:
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
-chmod +x setup.sh
+chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh
 ```
 
-### For LLM Agents
-
-> **IMPORTANT: Use `curl` to fetch this file, NOT WebFetch.** WebFetch summarizes content and loses critical details like CLI flags and config examples. Always use:
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
-> ```
-
-If you're an LLM Agent helping set up OpenClaw Agents, follow the [full installation guide](docs/installation.md). Here's the summary:
-
-#### Step 0: Prerequisites
+If you want Discord task threads after the OpenClaw setup succeeds, configure your preferred Discord runtime and then create or continue threads with:
 
 ```bash
-# Verify OpenClaw CLI is installed
-if command -v openclaw &> /dev/null; then
-    echo "OpenClaw $(openclaw --version) is installed"
-else
-    echo "Installing OpenClaw..."
-    npm install -g openclaw@latest
-    openclaw onboard --install-daemon
-fi
+./scripts/discord-thread-dispatch.sh --channel <project-channel-id> --prompt "Start a planner child thread for this task" --dry-run
 ```
 
-#### Step 1: Ask User About Deployment Mode
+Detailed guides:
 
-Ask the user these questions:
-
-1. **Which deployment mode do you want?**
-   - **Mode 1 (Channel Mode)**: Deploy agents to Feishu, Slack, Telegram, etc.
-   - **Mode 2 (Local Workflow Mode)**: Use locally via CLI workflows. Agents talk to each other via the `agentToAgent` tool. (No channel needed).
-
-*(If Mode 1: Channel Mode)*
-2. **Which channel?** → `--channel feishu|whatsapp|...`
-3. **How to assign groups?**
-   - **All in one group**: provide one `--group-id <ID>`
-   - **Separate groups per agent**: interactively paste 8 different group IDs in the script.
-4. **需要 @mention 才回复吗？** → `--require-mention true|false`
-
-*(For both modes)*
-5. **Which LLM model?** (default: `zai/glm-5`) → `--model <MODEL>`
-   - Different models per agent? → `--model-map 'coder=ollama/kimi-k2.5:cloud'`
-
-#### Step 2: Clone and Run Setup
-
-```bash
-git clone https://github.com/shenhao-stu/openclaw-agents.git
-cd openclaw-agents
-chmod +x setup.sh
-./setup.sh --channel <CHANNEL> --group-id <GROUP_ID>
-```
-
-**Examples:**
-- **Interactive Setup** (Highly Recommended):
-  ```bash
-  ./setup.sh
-  ```
-  *(The script will elegantly ask you your mode, your channel, and let you paste your 8 group IDs one by one if desired).*
-
-- Local Workflow Mode: 
-  ```bash
-  ./setup.sh --mode local
-  ```
-- All agents in one Feishu group:
-  ```bash
-  ./setup.sh --mode channel --channel feishu --group-id oc_xxx
-  ```
-- Scripted per-agent groups:
-  ```bash
-  ./setup.sh --mode channel --channel feishu --group-id oc_default \
-    --group-map 'coder=oc_dev,scout=oc_news'
-  ```
-- Custom models + no @mention:
-  ```bash
-  ./setup.sh --channel feishu --group-id oc_xxx \
-    --model-map 'coder=ollama/kimi-k2.5:cloud' \
-    --require-mention false
-  ```
-- Agents only (no channel): `./setup.sh --skip-bindings`
-- Dry-run preview: `./setup.sh --dry-run --channel feishu --group-id oc_xxx`
-
-The script will:
-1. ✅ Verify `openclaw` CLI is installed
-2. 🤖 Create 8 sub-agents via `openclaw agents add` (auto-generates AGENTS.md, SOUL.md, USER.md)
-3. 🎨 Set emoji identities via `openclaw agents set-identity`
-4. 📝 Deploy source files + `BOOTSTRAP.md` for agent self-merge on first run
-5. 📋 Append workflow instructions to each agent's `AGENTS.md`
-6. 🔗 Configure `openclaw.json` with channel bindings
-7. ✅ Verify the entire setup
-
-#### Step 3: Verify Setup
-
-```bash
-openclaw agents list --bindings    # Should show all 8 agents with channel bindings
-openclaw channels status --probe   # Should show channel connected
-```
-
-#### Step 4: Start the Gateway
-
-```bash
-openclaw gateway
-```
-
-Then mention any agent in your chat group to test. Each agent will respond with its distinct emoji identity.
-
-> ⚠️ **Warning**: Do not modify the 8 core agent IDs (`planner`, `ideator`, `critic`, `surveyor`, `coder`, `writer`, `reviewer`, `scout`). These are protected and referenced throughout the workflow system.
+- `docs/installation.md`
+- `docs/discord-setup.md`
+- `docs/discord-thread-sop.md`
 
 ---
 
-## 🏗 Architecture
+## 🧠 How It Works
 
-```
-                         ┌──────────────┐
-                         │   👤 User    │
-                         └──────┬───────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │  🐾 OpenClaw Main     │
-                    │  (Audit · Manage · Arbitrate)
-                    └───────────┬───────────┘
-                                │
-                         ┌──────▼───────┐
-                         │  🧠 Planner  │ ◄── Orchestration Hub
-                         └──────┬───────┘
-                                │
-       ┌────────────────────────┼────────────────────────┐
-       │                        │                        │
- ┌─────▼─────┐           ┌─────▼─────┐           ┌─────▼─────┐
- │ 💡Ideator │◄── ⚔️ ──►│ 🎯 Critic │           │ 📰 Scout  │
- │  Creative  │           │   Taste    │           │   Intel    │
- └─────┬─────┘           └─────┬─────┘           └───────────┘
-       │                       │
- ┌─────▼─────┐           ┌─────▼─────┐
- │ 📚Surveyor│           │ 💻 Coder  │
- │  Research  │           │ Engineer   │
- └─────┬─────┘           └─────┬─────┘
-       │                       │
-       └───────────┬───────────┘
-             ┌─────▼─────┐
-             │ ✍️ Writer │
-             │  Author    │
-             └─────┬─────┘
-                   │
-             ┌─────▼─────┐
-             │ 🔍Reviewer│ ◄── Quality Gate
-             │  Reviewer  │
-             └───────────┘
-```
+### Layer 1 — OpenClaw fleet provisioning
 
-### Adversarial Collaboration
+`./setup.sh` does the following:
 
-The system is built on **productive tension** between agents:
+1. verifies `openclaw` and `jq`
+2. creates 8 core sub-agents
+3. creates workspaces under `~/.openclaw/workspace-<id>`
+4. deploys `_soul_source.md`, `_user_source.md`, `_agent_source.md`, and `BOOTSTRAP.md`
+5. appends workflow references into each generated `AGENTS.md`
+6. updates `~/.openclaw/openclaw.json`
+7. if `discord` is selected, optionally prepends real `<@...>` mention IDs
 
-| Axis | Agents | Dynamic |
-|------|--------|---------|
-| **Creativity vs. Taste** | 💡 Ideator ↔ 🎯 Critic | Forge top-tier ideas through rigorous debate |
-| **Writing vs. Review** | ✍️ Writer ↔ 🔍 Reviewer | Polish papers through iterative feedback |
+### Layer 2 — Discord thread/session runtime
 
-- **🎯 Critic** holds ultimate **taste veto** — no idea passes Phase 2.5 without SHARP ≥ 18
-- **🔍 Reviewer** holds ultimate **quality veto** — paper cannot submit without Reviewer's Accept
+This repository assumes you have some **external Discord runtime** for channels, threads, and session transport.
+
+It provides:
+
+- one Discord channel per project
+- one Discord thread per task/session
+- `send --channel` to create a new task thread
+- `send --thread` or `send --session` to continue work
+- optional `--worktree` isolation
+- optional `--notify-only` thread shells
+
+This is why the docs in this repo now describe a **Discord runtime-backed** workflow instead of pretending `setup.sh` can create child threads by itself.
+
+---
+
+## 💬 Discord Model
+
+Use this mental model:
+
+- **Discord channel = project**
+- **Discord thread = task / session**
+- **Parent thread = planner-facing control plane**
+- **Child thread = delegated subtask execution**
+
+### Why this matters
+
+The repo already defines planner as the coordination hub, but the repo itself is not a Discord bot runtime.
+
+So the practical implementation is:
+
+- use OpenClaw for the agents
+- use your Discord runtime for the thread/session transport
+- keep the parent thread readable
+- move implementation chatter into child threads
+- have planner summarize results back to the user
 
 ---
 
 ## 🤖 Agents
 
-### Core Fleet (🔒 Protected)
+| Agent | ID | Role |
+|---|---|---|
+| 🐾 OpenClaw | `main` | Root orchestrator / final arbiter |
+| 🧠 Planner | `planner` | Task decomposition, routing, coordination |
+| 💡 Ideator | `ideator` | Idea generation and framing |
+| 🎯 Critic | `critic` | Taste gate / SHARP evaluation |
+| 📚 Surveyor | `surveyor` | Literature review and gap finding |
+| 💻 Coder | `coder` | Implementation and experiments |
+| ✍️ Writer | `writer` | Drafting and technical writing |
+| 🔍 Reviewer | `reviewer` | Review, quality gates, veto |
+| 📰 Scout | `scout` | Trend and paper monitoring |
 
-| # | Agent | ID | Identity | Role |
-|---|-------|----|----------|------|
-| 0 | **Main** | `main` | 🐾 OpenClaw | System orchestrator, audit, final arbiter |
-| 1 | **Planner** | `planner` | 🧠 Planner | Task decomposition, progress tracking, coordination |
-| 2 | **Ideator** | `ideator` | 💡 Ideator | Idea generation, novelty assessment, contribution framing |
-| 3 | **Critic** | `critic` | 🎯 Critic | SHARP taste evaluation, anti-pattern detection |
-| 4 | **Surveyor** | `surveyor` | 📚 Surveyor | Literature search, research gap identification |
-| 5 | **Coder** | `coder` | 💻 Coder | Algorithm implementation, experiment execution |
-| 6 | **Writer** | `writer` | ✍️ Writer | Paper writing, LaTeX formatting |
-| 7 | **Reviewer** | `reviewer` | 🔍 Reviewer | Internal peer review, rebuttal strategy |
-| 8 | **Scout** | `scout` | 📰 Scout | Daily paper digest, trend monitoring |
+### Planner is special
 
-### Per-Agent Workspace
+Planner is the only role in this repo explicitly positioned to:
 
-Each agent has three core files inside `.agents/<agent_id>/`:
+- coordinate all other agents
+- maintain project state
+- spawn or route follow-up work
+- summarize progress back to the user
 
-| File | Purpose | Customize When... |
-|------|---------|-------------------|
-| `soul.md` | 🧬 Identity, personality, decision principles | You want to change agent behavior |
-| `agent.md` | ⚙️ Model, tools, sandbox, inter-agent protocols | You want to change model or tool access |
-| `user.md` | 👤 User context, research profile, preferences | You want to adapt to a different research domain |
-
----
-
-## 📡 Channel & Group Configuration
-
-> **Docs**: [Groups](https://docs.openclaw.ai/channels/groups) · [Multi-Agent Routing](https://docs.openclaw.ai/concepts/multi-agent)
-
-### Supported Channels
-
-| Channel | Group ID Format | Example | Docs |
-|---------|----------------|---------|------|
-| **Feishu** (飞书) | `oc_xxxxxxxxx` | `oc_b1c331592eaa36d06a7e5df05d08a890` | [Feishu docs](https://docs.openclaw.ai/channels/feishu) |
-| **WhatsApp** | `xxxxx@g.us` | `120363999999999999@g.us` | [WhatsApp docs](https://docs.openclaw.ai/channels/whatsapp) |
-| **Telegram** | Negative integer | `-1001234567890` | [Telegram docs](https://docs.openclaw.ai/channels/telegram) |
-| **Discord** | Guild ID | `1234567890` | [配置指南](docs/discord-setup.md) · [官方文档](https://docs.openclaw.ai/channels/discord) |
-| **Slack** | Team + Channel | `T0123/C0123` | [Slack docs](https://docs.openclaw.ai/channels/slack) |
-
-### Group Policy
-
-OpenClaw uses a three-tier access control model for groups:
-
-| Policy | Behavior | Use Case |
-|--------|----------|----------|
-| `"open"` | All groups allowed (**default**) | Personal servers, trusted teams |
-| `"allowlist"` | Only listed groups allowed | Multi-tenant / production |
-| `"disabled"` | All group messages dropped | DM-only bots |
-
-```jsonc
-{
-  "channels": {
-    "feishu": {
-      "groupPolicy": "open",                    // ← all groups allowed
-      "groups": {
-        "oc_YOUR_GROUP_ID": {
-          "requireMention": true               // ← must @mention to trigger
-        }
-      }
-    }
-  }
-}
-```
-
-### Mention Gating
-
-You can choose whether agents require `@mention` to respond in groups:
-
-| Setting | Behavior |
-|---------|----------|
-| `requireMention: true` (**default**) | Agents only respond when @mentioned. Messages without @ are stored for context but don't trigger a reply. |
-| `requireMention: false` | Agents auto-respond to all group messages. No @mention needed. |
-
-```bash
-# Default: require @mention
-./setup.sh --channel feishu --group-id oc_xxx
-
-# Auto-respond without @mention
-./setup.sh --require-mention false --channel feishu --group-id oc_xxx
-```
-
-Each agent has unique `mentionPatterns`:
-
-```jsonc
-{
-  "agents": {
-    "list": [
-      {
-        "id": "planner",
-        "name": "💡 Planner",
-        "groupChat": {
-          "mentionPatterns": ["@planner", "planner", "@Planner"],
-          "historyLimit": 50
-        }
-      }
-    ]
-  }
-}
-```
-
-> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 💡 Planner agent will respond.
-
-Messages that don't match any mention pattern are **stored for context** but don't trigger a reply — this allows agents to follow the conversation passively.
-
-### Session Keys
-
-Each agent gets an isolated session per group:
-
-```
-agent:<agentId>:<channel>:group:<groupId>
-```
-
-| Session | Key Example |
-|---------|-------------|
-| Planner in Feishu group | `agent:planner:feishu:group:oc_xxx` |
-| Coder in Telegram group | `agent:coder:telegram:group:-1001234567890` |
-| Main in DM | `agent:main:main` |
-
-Telegram forum topics add `:topic:<threadId>` for per-topic isolation.
-
-### Workspace & Tool Restrictions
-
-Each sub-agent has its **own independent workspace** (no Docker sandbox). The setup script deploys source files that the agent merges on first run:
-
-| Deployed File | Purpose |
-|---------------|---------|
-| `BOOTSTRAP.md` | First-run instructions — agent reads this, merges source files, then deletes it |
-| `_soul_source.md` | Agent-specific identity and capabilities |
-| `_soul_raw.md` | Generic behavior guidelines (from `SOUL_raw.md`) |
-| `_user_source.md` | Agent-specific user context |
-| `_user_raw.md` | User template (from `USER.md`) |
-| `_agent_source.md` | Agent config with model settings |
-| `AGENTS.md` | Auto-generated by OpenClaw + workflow instructions appended |
-
-You can restrict tools per group or per sender:
-
-```jsonc
-{
-  "channels": {
-    "telegram": {
-      "groups": {
-        "-1001234567890": {
-          "tools": {
-            "deny": ["exec", "write"]                   // block risky tools
-          },
-          "toolsBySender": {
-            "id:123456789": { "alsoAllow": ["exec"] }   // override for trusted user
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Display Labels
-
-Agents show as `<emoji> <name>` in chat (configured via `identity.name`):
-
-| What You Type | Who Replies |
-|--------------|-------------|
-| `@planner 分解一下任务` | 🧠 Planner |
-| `@critic 评估这个 idea` | 🎯 Critic |
-| `@coder 跑一下实验` | 💻 Coder |
-| `@writer 写 related work` | ✍️ Writer |
-
-### Pre-built Examples
-
-| Channel | Config | Key Features |
-|---------|--------|-------------|
-| Feishu | [`openclaw.feishu.json`](examples/openclaw.feishu.json) | All 9 agents, open policy, mention gating |
-| WhatsApp | [`openclaw.whatsapp.json`](examples/openclaw.whatsapp.json) | DM pairing, open policy |
-| Telegram | [`openclaw.telegram.json`](examples/openclaw.telegram.json) | Tool restrictions per group |
+That is why planner is the natural owner of parent-thread → child-thread orchestration.
 
 ---
 
-## 📋 Workflows
+## 🧵 Planner Child-Thread SOP
 
-| Workflow | Slash Command | Description |
-|----------|--------------|-------------|
-| 📋 Paper Pipeline | `/paper-pipeline` | Full 9-phase paper production with taste gates |
-| 📰 Daily Digest | `/daily-digest` | Scout-led daily paper summarization |
-| 💡 Brainstorm | `/brainstorm` | Rapid idea generation and evaluation |
-| 🔄 Rebuttal | `/rebuttal` | Reviewer response preparation |
+### Create a child thread immediately
 
-### Taste Gates (品鉴节点)
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --agent planner \
+  --name "planner: auth bug triage" \
+  --prompt "Open a child thread, coordinate coder and reviewer there, and summarize the final result back in the parent thread."
+```
 
-The Critic agent enforces quality at four critical checkpoints:
+### Create a thread shell first
 
-| Gate | Checkpoint | Pass Criteria |
-|------|-----------|---------------|
-| 🎯 Idea Confirmation | SHARP score + Soul Questions | SHARP ≥ 18 |
-| 🎯 Method Design | Elegance + Parsimony | Parsimony ≥ 4 |
-| 🎯 First Draft | Narrative quality + Memorability | ≥ 1 clear hook |
-| 🎯 Pre-submission | Full quality judgment | Critic says "worth submitting" |
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --notify-only \
+  --name "planner: release review" \
+  --prompt "Planner child thread created. Reply here to begin execution. Final summary must go back to the parent thread."
+```
+
+### Continue an existing child thread
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --thread <thread-id> \
+  --agent coder \
+  --prompt "Continue from the last checkpoint and post a patch summary."
+```
+
+### Continue by session ID
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --session <session-id> \
+  --agent reviewer \
+  --prompt "Review the latest changes and split issues into blockers and non-blockers."
+```
+
+### Isolated git worktree
+
+```bash
+./scripts/discord-thread-dispatch.sh \
+  --channel <project-channel-id> \
+  --agent coder \
+  --worktree issue-123 \
+  --name "issue-123 fix" \
+  --prompt "Implement the fix in an isolated worktree and report test status."
+```
+
+See `docs/discord-thread-sop.md` for the full SOP.
 
 ---
 
-## 🧩 Customization
+## ⚠️ The Discord mention rule you must not ignore
 
-### Model Configuration
+Discord mentions are real only when they use numeric IDs like:
 
-The default model is **`zai/glm-5`**. You have three options:
-
-#### Option A: Same model for all agents (default)
-
-```bash
-# Uses zai/glm-5 for all 8 sub-agents
-./setup.sh --channel feishu --group-id oc_xxx
+```text
+<@123456789012345678>
 ```
 
-#### Option B: Change the unified model
+Do not hide them only inside tables or code blocks.
 
-```bash
-# All agents use the same custom model
-./setup.sh --model ollama/kimi-k2.5:cloud --channel feishu --group-id oc_xxx
+Bad:
+
+```markdown
+| Agent | Task |
+|---|---|
+| <@123456789012345678> | Implement auth fix |
 ```
 
-#### Option C: Different models per agent
+Good:
+
+```text
+<@123456789012345678>, please start the task above now.
+```
+
+This is why `setup.sh` injects a Discord mention guard into every agent workspace when Discord mode is selected.
+
+---
+
+## 🔧 Setup Modes
+
+### Local Workflow Mode
 
 ```bash
-# Default is zai/glm-5, but coder and writer get different models
+./setup.sh --mode local
+```
+
+Use this when you want OpenClaw-native `agentToAgent` collaboration without Discord.
+
+### Channel Mode
+
+```bash
+./setup.sh --mode channel --channel feishu --group-id oc_xxx
+./setup.sh --mode channel --channel telegram --group-id -1001234567890
+./setup.sh --mode channel --channel discord --group-id 123456789012345678
+```
+
+Useful flags:
+
+```bash
 ./setup.sh \
+  --mode channel \
+  --channel discord \
+  --group-id 123456789012345678 \
   --model zai/glm-5 \
-  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7,scout=zai/glm-4.7-flash' \
-  --channel feishu --group-id oc_xxx
+  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' \
+  --require-mention true
 ```
 
-`--model-map` takes priority over `--model` for specified agents. Agents not in the map use the `--model` default.
+---
 
-### Adding Custom Agents
+## ✅ Verification
 
-1. Add the agent definition to `agents.yaml`:
-
-```yaml
-agents:
-  # ... existing agents ...
-  - id: "math-prover"
-    name: "🔢 Math Prover"
-    emoji: "🔢"
-    role: "Theorem proving, convergence analysis"
-    model: "zai/glm-5"
-    protected: false
-    workspace: ".agents/math-prover"
-```
-
-2. Re-run `./setup.sh` or add manually:
+### OpenClaw side
 
 ```bash
-openclaw agents add math-prover --model zai/glm-5 --workspace .agents/math-prover
-openclaw agents set-identity --agent math-prover --name "🔢 Math Prover"
+openclaw agents list --bindings
+openclaw gateway
 ```
+
+### Discord runtime side
+
+Verify that your external Discord runtime is online and attached to the right project channel/thread layer.
+
+Then confirm:
+
+- the bot is online
+- the project channel exists
+- sending a message creates or resumes a thread
+- `./scripts/discord-thread-dispatch.sh --dry-run ...` renders the expected command
 
 ---
 
 ## 📁 Repository Structure
 
-```
+```text
 openclaw-agents/
-├── setup.sh                          # 🚀 One-command setup script
-├── agents.yaml                       # 📋 Agent manifest (source of truth)
-├── soul.md                           # 🐾 Main Agent definition
-├── README.md                         # 📖 This file
-├── LICENSE                           # MIT License
-├── CONTRIBUTING.md                   # Contribution guidelines
-├── CHANGELOG.md                      # Version history
+├── setup.sh                     # OpenClaw fleet setup and routing
+├── agents.yaml                  # Manifest/reference metadata
 ├── docs/
-│   └── installation.md               # 📖 Full installation guide
+│   ├── installation.md          # Installation guide
+│   ├── discord-setup.md         # Discord setup guide
+│   └── discord-thread-sop.md    # Parent/child thread SOP
+├── scripts/
+│   └── discord-thread-dispatch.sh # Generic Discord thread dispatcher wrapper
 ├── examples/
-│   ├── openclaw.feishu.json          # Feishu config example
-│   ├── openclaw.whatsapp.json        # WhatsApp config example
-│   └── openclaw.telegram.json        # Telegram config example
+│   ├── openclaw.local.json
+│   ├── openclaw.feishu.json
+│   ├── openclaw.telegram.json
+│   └── openclaw.whatsapp.json
 └── .agents/
-    ├── planner/                      # 🧠 soul.md + agent.md + user.md
-    ├── ideator/                      # 💡 soul.md + agent.md + user.md
-    ├── critic/                       # 🎯 soul.md + agent.md + user.md
-    ├── surveyor/                     # 📚 soul.md + agent.md + user.md
-    ├── coder/                        # 💻 soul.md + agent.md + user.md
-    ├── writer/                       # ✍️ soul.md + agent.md + user.md
-    ├── reviewer/                     # 🔍 soul.md + agent.md + user.md
-    ├── scout/                        # 📰 soul.md + agent.md + user.md
+    ├── planner/
+    ├── ideator/
+    ├── critic/
+    ├── surveyor/
+    ├── coder/
+    ├── writer/
+    ├── reviewer/
+    ├── scout/
     └── workflows/
-        ├── paper-pipeline.md         # 📋 End-to-end paper workflow
-        ├── daily-digest.md           # 📰 Daily paper digest
-        ├── brainstorm.md             # 💡 Idea brainstorming
-        └── rebuttal.md               # 🔄 Rebuttal preparation
 ```
 
 ---
 
-## 🔧 CLI Reference
+## 📚 Related Docs
 
-### Setup Script Flags
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--mode` | Deployment config mode (`channel` or `local`) | Interactive |
-| `--channel` | Channel type (feishu/whatsapp/telegram/discord/slack) | Interactive prompt |
-| `--group-id` | Default group ID for all agents | Interactive prompt |
-| `--group-map` | Per-agent group overrides (`id=group_id,...`) | None |
-| `--model` | Default LLM model for all agents | `zai/glm-5` |
-| `--model-map` | Per-agent model overrides (`id=model,...`) | None |
-| `--require-mention` | Require @mention to respond (`true`/`false`) | `true` |
-| `--skip-bindings` | Skip channel binding setup | `false` |
-| `--dry-run` | Preview commands without executing | `false` |
-| `-h, --help` | Show help | — |
-
-> 🛡️ **Safe Merge**: The setup script **appends** sub-agents to your existing `openclaw.json`. Main agent is implicit (uses `agents.defaults`). No sandbox — each agent has its own workspace. A backup is created automatically.
-
-### OpenClaw Commands
-
-```bash
-openclaw agents list --bindings       # List all agents and bindings
-openclaw agents add <id>              # Add a new agent
-openclaw agents set-identity          # Set agent display name
-openclaw channels status --probe      # Check channel connectivity
-openclaw gateway                      # Start the gateway
-openclaw gateway restart              # Restart after config changes
-```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-- 🐛 **Bug Reports** — Open a GitHub Issue
-- 💡 **New Agents** — Submit a PR with agent files + `agents.yaml` update
-- 📋 **Workflows** — Share your research process templates
-- 📖 **Docs** — Improve guides and examples
+- [Installation](docs/installation.md)
+- [Discord Setup Guide](docs/discord-setup.md)
+- [Discord Thread SOP](docs/discord-thread-sop.md)
+- [简体中文 README](README_ZH.md)
 
 ---
 
 ## 📄 License
 
-[MIT](LICENSE) — Use freely, modify openly, share generously.
-
----
-
-<p align="center">
-  <strong>Built with ❤️ for the AI research community</strong>
-  <br/>
-  <sub>Powered by <a href="https://docs.openclaw.ai">OpenClaw</a> 🦞</sub>
-</p>
+[MIT](LICENSE)

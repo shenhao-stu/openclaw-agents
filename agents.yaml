@@ -1,5 +1,5 @@
 # ============================================================
-# OpenClaw Agents �?Multi-Agent Configuration Manifest
+# OpenClaw Agents �?Multi-Agent Configuration Manifest
 # ============================================================
 # This file defines all agents, their properties, and routing.
 # Used by setup.sh to auto-provision the entire agent fleet.
@@ -8,8 +8,8 @@
 # ── Global Settings ──────────────────────────────────────────
 project:
   name: "openclaw-agents"
-  version: "1.0.0"
-  description: "Multi-Agent collaborative system for AI research"
+  version: "3.1.0"
+  description: "OpenClaw agent fleet with Discord parent-thread/child-thread SOP"
   default_model: "zai/glm-5"
 
 # ── Agent Definitions ────────────────────────────────────────
@@ -28,7 +28,7 @@ agents:
     name: "🐾 OpenClaw"
     emoji: "🐾"
     role: "System orchestrator, audit, and final arbiter"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: "."
     default: true
@@ -38,7 +38,7 @@ agents:
     name: "🧠 Planner"
     emoji: "🧠"
     role: "Task decomposition, progress tracking, cross-agent coordination"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/planner"
 
@@ -46,7 +46,7 @@ agents:
     name: "💡 Ideator"
     emoji: "💡"
     role: "Idea generation, novelty assessment, contribution refinement"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/ideator"
 
@@ -54,7 +54,7 @@ agents:
     name: "🎯 Critic"
     emoji: "🎯"
     role: "SHARP taste evaluation, soul questions, anti-pattern detection"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/critic"
 
@@ -62,7 +62,7 @@ agents:
     name: "📚 Surveyor"
     emoji: "📚"
     role: "Literature search, paper analysis, research gap identification"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/surveyor"
 
@@ -70,7 +70,7 @@ agents:
     name: "💻 Coder"
     emoji: "💻"
     role: "Algorithm implementation, experiment execution, code optimization"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/coder"
 
@@ -78,7 +78,7 @@ agents:
     name: "✍️ Writer"
     emoji: "✍️"
     role: "Paper writing, LaTeX formatting, academic expression"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/writer"
 
@@ -86,7 +86,7 @@ agents:
     name: "🔍 Reviewer"
     emoji: "🔍"
     role: "Internal peer review, weakness diagnosis, rebuttal strategy"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/reviewer"
 
@@ -94,7 +94,7 @@ agents:
     name: "📰 Scout"
     emoji: "📰"
     role: "Daily paper digest, trend analysis, competitive intelligence"
-    model: "zai/glm-5"
+    model: "ohmyapi/gpt-5.4"
     protected: true
     workspace: ".agents/scout"
 
