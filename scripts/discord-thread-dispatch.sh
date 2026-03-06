@@ -15,59 +15,55 @@ error() { printf "%b\n" "${RED}✖${NC}  $*" >&2; }
 
 usage() {
   cat <<'EOF'
-OpenClaw Discord thread dispatcher
+OpenClaw Discord Thread Dispatcher
 
-Purpose:
-  Provide a repository-local SOP wrapper for parent-thread → child-thread
-  collaboration in Discord-backed deployments.
+SOP wrapper for parent-thread / child-thread collaboration using
+OpenClaw native Discord support (openclaw message).
 
-This script is intentionally generic.
-It does NOT hardcode any specific Discord bot/runtime brand.
+Each agent has its own Discord bot account. OpenClaw routes by
+accountId → agentId via bindings in openclaw.json.
 
-To execute the generated command, set DISCORD_DISPATCH_CMD to your actual
-thread/session dispatcher binary or shell command.
+Usage:
+  ./scripts/discord-thread-dispatch.sh --channel <id> --agent planner --prompt "..."
+  ./scripts/discord-thread-dispatch.sh --thread <id> --prompt "Continue..."
 
 Examples:
 
-  # Dry-run a new planner child thread under a project channel
+  # Create a new child thread under a channel
   ./scripts/discord-thread-dispatch.sh \
-    --channel 123456789012345678 \
+    --channel 1478466947208446106 \
     --agent planner \
     --name "planner: auth bug triage" \
-    --prompt "Open a child thread, coordinate coder + reviewer, and report back in the parent thread." \
+    --prompt "Coordinate coder + reviewer. Report back in parent thread." \
     --dry-run
 
-  # Continue an existing child thread
+  # Continue an existing thread
   ./scripts/discord-thread-dispatch.sh \
-    --thread 123456789012345679 \
-    --agent coder \
-    --prompt "Continue from the last checkpoint and post a concise patch summary." \
+    --thread 1234567890123456789 \
+    --prompt "Continue from checkpoint." \
     --dry-run
 
-Environment:
-  DISCORD_DISPATCH_CMD   Required for non-dry-run execution.
-                         Example:
-                         export DISCORD_DISPATCH_CMD='my-discord-cli send'
+  # One-shot agent turn (no thread)
+  ./scripts/discord-thread-dispatch.sh \
+    --agent planner \
+    --message "Summarize today's progress" \
+    --dry-run
 
 Options:
-  --channel ID       Create a new child thread under a project channel
-  --thread ID        Continue an existing Discord thread
-  --session ID       Continue an existing external session ID mapping
-  --prompt TEXT      Prompt body for the dispatcher (required)
-  --name TEXT        Optional thread title when creating a new child thread
-  --agent NAME       Optional agent override, e.g. planner/coder/reviewer
-  --model ID         Optional model override
-  --worktree NAME    Optional worktree name for isolated execution
-  --notify-only      Create a thread shell without immediate AI execution
-  --send-at VALUE    Optional scheduled send time (depends on your dispatcher)
-  --app-id ID        Optional application/bot ID for validation
-  --dry-run          Print the generated command without executing it
-  -h, --help         Show this help
+  --channel ID       Target channel for new thread creation
+  --thread ID        Existing thread to continue
+  --prompt TEXT       Prompt / message body (required)
+  --name TEXT         Thread title (only with --channel)
+  --agent NAME        Agent account to use (planner/coder/reviewer/...)
+  --account NAME      Explicit accountId override
+  --notify-only       Create thread shell without AI execution
+  --dry-run           Print the openclaw command without executing
+  -h, --help          Show this help
 
-Notes:
-  - Use exactly one target selector: --channel OR --thread OR --session.
-  - This script does not create OpenClaw agents; run ./setup.sh first.
-  - This script deliberately avoids binding the repo to any one Discord runtime.
+Prereqs:
+  - openclaw installed and gateway running
+  - Discord channel configured in openclaw.json
+  - Bot tokens set per account
 EOF
 }
 
@@ -76,134 +72,86 @@ TARGET_ID=""
 PROMPT=""
 THREAD_NAME=""
 AGENT_NAME=""
-MODEL_ID=""
-WORKTREE_NAME=""
-SEND_AT=""
-APP_ID=""
+ACCOUNT_NAME=""
 NOTIFY_ONLY=false
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --channel|--thread|--session)
-      if [[ -n "${TARGET_KIND}" ]]; then
-        error "Use only one of --channel, --thread, or --session"
-        exit 1
-      fi
-      TARGET_KIND="${1#--}"
+    --channel)
+      [[ -n "${TARGET_KIND}" ]] && { error "Use only one of --channel or --thread"; exit 1; }
+      TARGET_KIND="channel"
       TARGET_ID="${2:-}"
       shift 2
       ;;
-    --prompt)
-      PROMPT="${2:-}"
+    --thread)
+      [[ -n "${TARGET_KIND}" ]] && { error "Use only one of --channel or --thread"; exit 1; }
+      TARGET_KIND="thread"
+      TARGET_ID="${2:-}"
       shift 2
       ;;
-    --name)
-      THREAD_NAME="${2:-}"
-      shift 2
-      ;;
-    --agent)
-      AGENT_NAME="${2:-}"
-      shift 2
-      ;;
-    --model)
-      MODEL_ID="${2:-}"
-      shift 2
-      ;;
-    --worktree)
-      WORKTREE_NAME="${2:-}"
-      shift 2
-      ;;
-    --send-at)
-      SEND_AT="${2:-}"
-      shift 2
-      ;;
-    --app-id)
-      APP_ID="${2:-}"
-      shift 2
-      ;;
-    --notify-only)
-      NOTIFY_ONLY=true
-      shift
-      ;;
-    --dry-run)
-      DRY_RUN=true
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      error "Unknown option: $1"
-      exit 1
-      ;;
+    --prompt)       PROMPT="${2:-}"; shift 2 ;;
+    --name)         THREAD_NAME="${2:-}"; shift 2 ;;
+    --agent)        AGENT_NAME="${2:-}"; shift 2 ;;
+    --account)      ACCOUNT_NAME="${2:-}"; shift 2 ;;
+    --notify-only)  NOTIFY_ONLY=true; shift ;;
+    --dry-run)      DRY_RUN=true; shift ;;
+    -h|--help)      usage; exit 0 ;;
+    *)              error "Unknown option: $1"; exit 1 ;;
   esac
 done
-
-if [[ -z "${TARGET_KIND}" || -z "${TARGET_ID}" ]]; then
-  error "You must provide exactly one of --channel, --thread, or --session"
-  exit 1
-fi
 
 if [[ -z "${PROMPT}" ]]; then
   error "--prompt is required"
   exit 1
 fi
 
-BASE_CMD="${DISCORD_DISPATCH_CMD:-}"
-
-CMD_PARTS=()
-if [[ -n "${BASE_CMD}" ]]; then
-  CMD_PARTS+=("${BASE_CMD}")
-else
-  CMD_PARTS+=("discord-dispatch" "send")
+if ! command -v openclaw >/dev/null 2>&1; then
+  error "openclaw CLI not found. Install: curl -fsSL https://openclaw.ai/install.sh | bash"
+  exit 1
 fi
 
-CMD_PARTS+=("--${TARGET_KIND}" "${TARGET_ID}" "--prompt" "${PROMPT}")
+ACCOUNT="${ACCOUNT_NAME:-${AGENT_NAME:-default}}"
 
-if [[ -n "${THREAD_NAME}" ]]; then
-  CMD_PARTS+=("--name" "${THREAD_NAME}")
-fi
+build_cmd() {
+  local cmd_parts=()
 
-if [[ -n "${AGENT_NAME}" ]]; then
-  CMD_PARTS+=("--agent" "${AGENT_NAME}")
-fi
+  if [[ "${TARGET_KIND}" == "channel" ]]; then
+    cmd_parts=(openclaw message thread create --channel discord)
+    cmd_parts+=(--target "channel:${TARGET_ID}")
+    if [[ -n "${THREAD_NAME}" ]]; then
+      cmd_parts+=(--thread-name "${THREAD_NAME}")
+    fi
+    cmd_parts+=(--message "${PROMPT}")
+    cmd_parts+=(--account "${ACCOUNT}")
 
-if [[ -n "${MODEL_ID}" ]]; then
-  CMD_PARTS+=("--model" "${MODEL_ID}")
-fi
+  elif [[ "${TARGET_KIND}" == "thread" ]]; then
+    cmd_parts=(openclaw message send --channel discord)
+    cmd_parts+=(--target "channel:${TARGET_ID}")
+    cmd_parts+=(--message "${PROMPT}")
+    cmd_parts+=(--account "${ACCOUNT}")
 
-if [[ -n "${WORKTREE_NAME}" ]]; then
-  CMD_PARTS+=("--worktree" "${WORKTREE_NAME}")
-fi
+  else
+    cmd_parts=(openclaw agent)
+    cmd_parts+=(--agent "${AGENT_NAME:-planner}")
+    cmd_parts+=(--message "${PROMPT}")
+  fi
 
-if [[ -n "${SEND_AT}" ]]; then
-  CMD_PARTS+=("--send-at" "${SEND_AT}")
-fi
+  printf '%q ' "${cmd_parts[@]}"
+}
 
-if [[ -n "${APP_ID}" ]]; then
-  CMD_PARTS+=("--app-id" "${APP_ID}")
-fi
-
-if [[ "${NOTIFY_ONLY}" == true ]]; then
-  CMD_PARTS+=("--notify-only")
-fi
-
-printf -v RENDERED '%q ' "${CMD_PARTS[@]}"
+RENDERED="$(build_cmd)"
 
 if [[ "${DRY_RUN}" == true ]]; then
-  info "Dry run only. Generated dispatcher command:"
+  info "Dry run. Generated command:"
   printf '%s\n' "${RENDERED}"
   exit 0
 fi
 
-if [[ -z "${DISCORD_DISPATCH_CMD:-}" ]]; then
-  error "DISCORD_DISPATCH_CMD is not set. Export your actual Discord dispatcher command first."
-  warn "Example: export DISCORD_DISPATCH_CMD='my-discord-cli send'"
-  exit 1
+if [[ "${NOTIFY_ONLY}" == true ]]; then
+  info "Notify-only: creating thread shell without AI execution"
 fi
 
-info "Dispatching using ${TARGET_KIND}=${TARGET_ID}"
+info "Dispatching via openclaw (account=${ACCOUNT}, target=${TARGET_KIND:-agent})"
 eval "${RENDERED}"
-success "Dispatcher command completed"
+success "Done"

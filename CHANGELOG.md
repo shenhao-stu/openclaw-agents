@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-03-06
+
+### Added
+- **ACP OpenCode integration** — Coder agent can delegate to OpenCode/Claude Code/Codex via `acpx` plugin. Config example: `examples/openclaw.acp-opencode.json`. Ref: [ACP Agents](https://docs.openclaw.ai/tools/acp-agents).
+- **`/reflect` command** — Self-reflection prompt. Scans history, extracts user preferences, task patterns, problems. Converts SOPs to skills. Saves to MEMORY.md. See `.agents/commands/reflect.md`.
+- **`/snapshot` command** — Portable session state export. Generates plug-and-play context document for cross-agent handoff. See `.agents/commands/snapshot.md`.
+- **Self-evolution skill** — `~/.openclaw/skills/openclaw-agents-ops/SKILL.md` installed for fleet-wide operational knowledge.
+
+### Changed
+- **Blog rewritten** — Technical tutorial style matching linux.do community norms. Step-by-step with TOC, blockquote tips,踩坑合集.
+
+## [4.1.0] - 2026-03-06
+
+### Changed
+- **`skills.md` → `SKILL.md`** — Renamed to follow the [AgentSkills](https://skills.sh/) spec with YAML frontmatter (`name` + `description`).
+- **Discord: native multi-bot architecture** — Removed kimaki dependency entirely. Each agent has its own Discord bot account. OpenClaw routes natively via `accountId` → `agentId` bindings. Thread creation uses `openclaw message thread create`.
+- **`discord-thread-dispatch.sh`** — Rewritten to wrap `openclaw message` commands instead of kimaki. Supports `--channel` (thread create), `--thread` (thread reply), and agent one-shot.
+- **CLI commands corrected** — Replaced non-existent `openclaw chat planner` with official commands: `openclaw tui` (terminal), `openclaw dashboard` (browser), `openclaw agent --agent planner --message "..."` (one-shot). Ref: [OpenClaw CLI docs](https://docs.openclaw.ai/cli/).
+- **Install command corrected** — Changed `npm install -g openclaw@latest` to `curl -fsSL https://openclaw.ai/install.sh | bash` per official docs.
+- **All docs rewritten** — `discord-setup.md`, `discord-thread-sop.md`, `installation.md`, `README.md`, `README_ZH.md` updated to reflect native multi-bot architecture. All commands verified against [docs.openclaw.ai](https://docs.openclaw.ai/).
+
+## [4.0.0] - 2026-03-06
+
+### Added
+- **`SKILL.md`** — AI-agent entrypoint with YAML frontmatter.
+- **openclaw-icons integration** — `setup.sh` deploys `openclaw-icons/` (svg, png) to each agent workspace.
+
+### Changed
+- **setup.sh** — SOP-style 8-step flow, openclaw-icons deployment. Version bump to 4.0.0.
+- **docs/** — Rewritten as step-by-step SOPs.
+- **README.md / README_ZH.md** — Aligned with v4.0.0.
+
+### Fixed
+- `setup.sh` JSON generation: replaced heredoc string concatenation with `jq -n` to avoid invalid JSON.
+
+---
+
 ## [3.1.0] - 2026-03-06
 
 ### Changed

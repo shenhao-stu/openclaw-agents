@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-VERSION="3.1.0"
+VERSION="4.2.0"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -22,50 +22,47 @@ step()    { echo -e "\n${MAGENTA}▸${NC} ${BOLD}$*${NC}"; }
 
 usage() {
   cat <<'EOF'
-OpenClaw Agents setup.sh
+OpenClaw Agents — Setup (Kimaki-style SOP)
 
 Purpose:
-  Provision the OpenClaw agent fleet, generate routing config, and print an
-  operator-friendly SOP for Discord parent-thread / child-thread workflows.
+  Provision the OpenClaw agent fleet and routing. One command, guided flow.
+  Discord uses OpenClaw native multi-bot routing (one bot account per agent).
 
 Usage:
-  ./setup.sh
-  ./setup.sh --mode local
-  ./setup.sh --mode channel --channel discord --group-id 123456789012345678
+  ./setup.sh                    Interactive wizard
+  ./setup.sh --mode local       Local agent-to-agent only
+  ./setup.sh --mode channel --channel discord --group-id <guild-id>
 
 Modes:
-  --mode local            Local Workflow Mode using OpenClaw agentToAgent
-  --mode channel          Channel Mode using OpenClaw bindings
+  --mode local            Local workflow (agentToAgent, no Discord)
+  --mode channel          Channel bindings (feishu|whatsapp|telegram|discord|slack)
 
-Channel mode flags:
-  --channel CHANNEL       feishu | whatsapp | telegram | discord | slack
-  --group-id ID           Shared group/channel/guild ID for all agents
-  --group-map MAP         Per-agent group IDs, e.g. coder=oc_dev,scout=oc_news
-  --require-mention BOOL  true | false (default: true)
+Channel flags:
+  --channel CHANNEL       Platform name
+  --group-id ID           Shared group/channel/guild ID
+  --group-map MAP         Per-agent IDs: coder=oc_dev,scout=oc_news
+  --require-mention BOOL  true|false (default: true)
 
-Universal flags:
-  --model MODEL           Default model for all sub-agents
-  --model-map MAP         Per-agent model overrides, e.g. coder=...,planner=...
-  --dry-run               Preview generated config instead of writing it
-  -h, --help              Show this help
+Universal:
+  --model MODEL           Default model
+  --model-map MAP         Per-agent overrides: coder=...,planner=...
+  --dry-run               Preview only, no writes
+  -h, --help              This help
 
-What this script does:
-  1. Verify prerequisites (openclaw + jq)
-  2. Create 8 core sub-agents with dedicated workspaces
-  3. Deploy BOOTSTRAP.md and source files for self-merge
-  4. Append workflow references into each workspace AGENTS.md
-  5. Update ~/.openclaw/openclaw.json for local or channel routing
-  6. If Discord is selected, configure mentionPatterns and print Discord thread SOP
+SOP Steps (what this script does):
+  1. Preflight: openclaw, jq
+  2. Create 8 core sub-agents + workspaces
+  3. Deploy bootstrap + source files
+  4. Append workflow refs to AGENTS.md
+  5. Deploy openclaw-icons to workspaces
+  6. Update ~/.openclaw/openclaw.json
+  7. If Discord: mentionPatterns + mention guard
 
-What this script does NOT do:
-  - It does not run a Discord bot runtime
-  - It does not create Discord threads by itself
-  - It does not replace an external Discord thread/session runtime
-
-For Discord child-thread workflows, see:
-  docs/discord-setup.md
-  docs/discord-thread-sop.md
-  scripts/discord-thread-dispatch.sh
+Discord runtime (separate):
+  Discord uses OpenClaw native multi-bot routing. Each agent = one bot account.
+  AI agents should read `SKILL.md` before operating this repo.
+  See: docs/discord-setup.md, docs/discord-thread-sop.md, SKILL.md
+  Dispatch: ./scripts/discord-thread-dispatch.sh --channel X --agent planner --prompt "..."
 EOF
 }
 
@@ -155,10 +152,10 @@ run() {
 }
 
 preflight() {
-  step "[1/7] Preflight checks"
+  step "[1/8] Preflight checks"
 
   if ! command -v openclaw >/dev/null 2>&1; then
-    error "openclaw CLI not found. Install it first: npm install -g openclaw@latest"
+    error "openclaw CLI not found. Install: curl -fsSL https://openclaw.ai/install.sh | bash"
     exit 1
   fi
 
@@ -184,7 +181,7 @@ preflight() {
 }
 
 create_agents() {
-  step "[2/7] Creating ${#CORE_AGENTS[@]} core sub-agents"
+  step "[2/8] Creating ${#CORE_AGENTS[@]} core sub-agents"
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
     local workspace="${OPENCLAW_HOME}/workspace-${id}"
@@ -196,7 +193,7 @@ create_agents() {
 }
 
 set_identities() {
-  step "[3/7] Setting agent identities"
+  step "[3/8] Setting agent identities"
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
     run "openclaw agents set-identity --agent '${id}' --name '${emoji} ${name}' 2>/dev/null || true"
@@ -204,7 +201,7 @@ set_identities() {
 }
 
 deploy_source_files() {
-  step "[4/7] Deploying bootstrap and source files"
+  step "[4/8] Deploying bootstrap and source files"
   info "Agents will self-merge from BOOTSTRAP.md on first run"
 
   for entry in "${CORE_AGENTS[@]}"; do
@@ -237,8 +234,29 @@ BOOTEOF
   done
 }
 
+deploy_openclaw_icons() {
+  step "[5/8] Deploying openclaw-icons to workspaces"
+  local icons_dir="${SCRIPT_DIR}/openclaw-icons"
+  if [[ ! -d "${icons_dir}" ]]; then
+    warn "openclaw-icons not found at ${icons_dir}; skipping"
+    return
+  fi
+  for entry in "${CORE_AGENTS[@]}"; do
+    IFS='|' read -r id name emoji role <<< "${entry}"
+    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+    mkdir -p "${workspace}/.icons"
+    if [[ -d "${icons_dir}/svg" ]]; then
+      cp -r "${icons_dir}/svg" "${workspace}/.icons/" 2>/dev/null || true
+    fi
+    if [[ -d "${icons_dir}/png" ]]; then
+      cp -r "${icons_dir}/png" "${workspace}/.icons/" 2>/dev/null || true
+    fi
+  done
+  success "Icons deployed to agent workspaces"
+}
+
 append_workflows() {
-  step "[5/7] Appending workflow references"
+  step "[6/8] Appending workflow references"
   local workflow_dir="${AGENTS_DIR}/workflows"
 
   for entry in "${CORE_AGENTS[@]}"; do
@@ -443,45 +461,48 @@ EOF
 }
 
 configure_config() {
-  step "[6/7] Generating openclaw.json routing"
+  step "[7/8] Generating openclaw.json routing"
 
-  local agents_json='['
-  local first=true
-
-  for entry in "${CORE_AGENTS[@]}"; do
+  local agents_json
+  agents_json="$(for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
     local workspace="${OPENCLAW_HOME}/workspace-${id}"
     local agent_model
     agent_model="$(get_model "${id}")"
-    [[ "${first}" == true ]] && first=false || agents_json+=','
-    agents_json+="$(cat <<EOF
-{
-  \"id\": \"${id}\",
-  \"name\": \"${id}\",
-  \"workspace\": \"${workspace}\",
-  \"model\": \"${agent_model}\",
-  \"identity\": { \"name\": \"${emoji} ${name}\" },
-  \"groupChat\": {
-    \"mentionPatterns\": [\"@${id}\", \"${id}\", \"@${name}\"],
-    \"historyLimit\": 50
-  }
-}
-EOF
-)"
-  done
-  agents_json+=']'
+    jq -n \
+      --arg id "${id}" \
+      --arg name "${name}" \
+      --arg emoji "${emoji}" \
+      --arg workspace "${workspace}" \
+      --arg model "${agent_model}" \
+      '{
+        id: $id,
+        name: $id,
+        workspace: $workspace,
+        model: $model,
+        identity: { name: ($emoji + " " + $name) },
+        groupChat: {
+          mentionPatterns: [("@" + $id), $id, ("@" + $name)],
+          historyLimit: 50
+        }
+      }'
+  done | jq -s .)"
 
   local our_ids
   our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s .)"
   local tmp_file
   tmp_file="$(mktemp)"
+  local tmp_agents
+  tmp_agents="$(mktemp)"
+  printf '%s' "${agents_json}" > "${tmp_agents}"
 
   if [[ "${MODE}" == "local" ]]; then
-    jq --argjson new_agents "${agents_json}" --argjson our_ids "${our_ids}" '
+    jq --slurpfile new_agents "${tmp_agents}" --argjson our_ids "${our_ids}" '
+      $new_agents[0] as $agents |
       .agents = (.agents // {})
       | .agents.list = (
           [(.agents.list // [])[] | select(.id as $id | $our_ids | index($id) | not)]
-          + $new_agents
+          + $agents
         )
       | .tools = (.tools // {}) * {
           "agentToAgent": {
@@ -534,15 +555,16 @@ EOF
     done
     groups_json+="}"
 
-    jq --argjson new_agents "${agents_json}" \
+    jq --slurpfile new_agents "${tmp_agents}" \
        --argjson new_bindings "${bindings_json}" \
        --argjson our_ids "${our_ids}" \
        --arg channel "${CHANNEL}" \
        --argjson new_groups "${groups_json}" '
+      $new_agents[0] as $agents |
       .agents = (.agents // {})
       | .agents.list = (
           [(.agents.list // [])[] | select(.id as $id | $our_ids | index($id) | not)]
-          + $new_agents
+          + $agents
         )
       | .bindings = (
           [(.bindings // [])[] | select(.agentId as $aid | $our_ids | index($aid) | not)]
@@ -566,14 +588,14 @@ EOF
   else
     cp "${tmp_file}" "${OPENCLAW_CONFIG}"
   fi
-  rm -f "${tmp_file}"
+  rm -f "${tmp_file}" "${tmp_agents}"
 
   configure_discord_mentions
   success "Config updated → ${OPENCLAW_CONFIG}"
 }
 
 verify_setup() {
-  step "[7/7] Verifying setup"
+  step "[8/8] Verifying setup"
   if [[ "${DRY_RUN}" == true ]]; then
     warn "Dry run enabled; skipping live verification commands"
     return
@@ -605,19 +627,19 @@ summary() {
   echo -e "    1. ${CYAN}openclaw gateway${NC}"
 
   if [[ "${MODE}" == "channel" && "${CHANNEL}" == "discord" ]]; then
-    echo -e "    2. Read ${CYAN}docs/discord-setup.md${NC}"
-    echo -e "    3. Read ${CYAN}docs/discord-thread-sop.md${NC}"
-    echo -e "    4. Start your Discord runtime"
-    echo -e "    5. Create/continue child threads via ${CYAN}./scripts/discord-thread-dispatch.sh${NC}"
+    echo -e "    2. Configure bot tokens: ${CYAN}openclaw config set channels.discord.accounts.<agent>.token '\"TOKEN\"' --json${NC}"
+    echo -e "    3. Read ${CYAN}docs/discord-setup.md${NC}"
+    echo -e "    4. Read ${CYAN}SKILL.md${NC} for AI-agent SOP"
+    echo -e "    5. Create child threads: ${CYAN}./scripts/discord-thread-dispatch.sh --channel <id> --agent planner --prompt \"...\"${NC}"
   elif [[ "${MODE}" == "channel" ]]; then
     echo -e "    2. Test in the bound group by mentioning ${CYAN}@planner${NC}"
   else
-    echo -e "    2. Run ${CYAN}openclaw chat planner${NC} and start a workflow"
+    echo -e "    2. Run ${CYAN}openclaw tui${NC} or ${CYAN}openclaw dashboard${NC}"
+    echo -e "    3. Read ${CYAN}SKILL.md${NC} for AI-agent SOP and recommended skills"
   fi
 
   echo ""
-  echo -e "  ${BOLD}Important boundary:${NC} setup.sh provisions OpenClaw agents and routing."
-  echo -e "  Discord thread/session orchestration is handled by your external runtime, not by this script."
+  echo -e "  ${BOLD}AI Agent Entry:${NC} read ${CYAN}SKILL.md${NC}"
   echo ""
 }
 
@@ -627,6 +649,7 @@ main() {
   create_agents
   set_identities
   deploy_source_files
+  deploy_openclaw_icons
   append_workflows
   prompt_mode_and_channel
   configure_config

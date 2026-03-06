@@ -1,133 +1,116 @@
-# Discord Thread SOP for OpenClaw Agents
+# Discord Thread SOP — Parent / Child Thread
 
-This document explains the repository's intended Discord collaboration model.
-
-- **OpenClaw Agents** provides the agent fleet, identities, workspaces, and routing conventions.
-- **An external Discord runtime** provides project channels, task threads, and session transport.
-
-The repository intentionally avoids binding itself to a single external Discord runtime brand.
+Standard Operating Procedure for planner-led Discord thread collaboration using OpenClaw native multi-bot Discord support.
 
 ---
 
-## 1. Mental model
+## 1. Mental Model
 
-- **Discord channel = project**
-- **Discord thread = task/session**
-- **Parent thread = planner / user-facing coordination**
-- **Child thread = delegated implementation or review subtask**
+| Concept | Meaning |
+|---|---|
+| **Parent thread** | User-facing. Planner coordinates. Final summary goes here. |
+| **Child thread** | Agent work. Coder, reviewer, surveyor, etc. collaborate here. |
+| **Planner** | Thread scheduler. Opens child threads, assigns tasks, returns to parent. |
+
+Each agent has its own Discord bot account. OpenClaw routes by `accountId` → `agentId`.
 
 ---
 
-## 2. Recommended planner workflow
+## 2. Flow
 
-### Pattern A — Create a child thread immediately
+```
+User @planner in main channel
+        ↓
+Planner creates child thread (openclaw message thread create)
+        ↓
+Child thread: planner @coder, @reviewer collaborate
+        ↓
+Planner posts summary to parent thread, @user
+```
+
+---
+
+## 3. Commands
+
+### A. Create a child thread
 
 ```bash
-./scripts/discord-thread-dispatch.sh \
-  --channel <project-channel-id> \
+openclaw message thread create --channel discord \
+  --target channel:<channelId> \
+  --thread-name "planner: auth bug triage" \
+  --message "Coordinate coder and reviewer. Post summary back in parent." \
+  --account planner
+```
+
+Or via dispatcher:
+
+```bash
+./scripts/discord-thread-dispatch.sh --channel <channelId> \
   --agent planner \
   --name "planner: auth bug triage" \
-  --prompt "Open a child thread for this auth bug. Coordinate coder and reviewer there. When done, post a concise final summary back in the parent thread and @mention the user." \
-  --dry-run
+  --prompt "Coordinate coder and reviewer. Post summary back in parent."
 ```
 
-### Pattern B — Create a notify-only child thread shell first
+### B. Continue an existing thread
 
 ```bash
-./scripts/discord-thread-dispatch.sh \
-  --channel <project-channel-id> \
-  --notify-only \
-  --name "planner: release-readiness review" \
-  --prompt "Planner child thread created. Reply here to start execution. Final results must be summarized in the parent thread." \
-  --dry-run
+openclaw message send --channel discord \
+  --target channel:<threadId> \
+  --message "Coder: patch ready. @reviewer please check." \
+  --account coder
 ```
 
-### Pattern C — Continue an existing worker thread
+Or via dispatcher:
 
 ```bash
-./scripts/discord-thread-dispatch.sh \
-  --thread <child-thread-id> \
+./scripts/discord-thread-dispatch.sh --thread <threadId> \
   --agent coder \
-  --prompt "Continue from the last checkpoint. Produce a patch summary and list open risks." \
-  --dry-run
+  --prompt "Continue from checkpoint. Produce patch summary."
 ```
 
-### Pattern D — Continue by external session ID
+### C. One-shot agent turn (no thread)
 
 ```bash
-./scripts/discord-thread-dispatch.sh \
-  --session <external-session-id> \
-  --agent reviewer \
-  --prompt "Review the latest patch and split issues into blockers and non-blockers." \
-  --dry-run
+openclaw agent --agent planner --message "Summarize today's progress."
 ```
 
 ---
 
-## 3. Collaboration rules for planner and child agents
-
-### Planner rules
+## 4. Planner Rules
 
 1. Keep the **parent thread** human-readable.
-2. Move detailed back-and-forth work into a **child thread**.
-3. In the child thread:
-   - assign the concrete subtask,
-   - request status updates,
-   - ask for blocker reports,
-   - require a final handoff summary.
-4. When the child thread is complete, post back in the **parent thread**:
-   - final outcome,
-   - changed files or deliverables,
-   - unresolved risks,
-   - an explicit `@user` notification if needed.
+2. Move detailed work into a **child thread**.
+3. In the child thread: assign subtasks, request status updates, require a final handoff.
+4. When complete, post back in the **parent thread**: final outcome, changed files, unresolved risks, explicit `@user` notification.
 
-### Worker rules
+---
+
+## 5. Worker Rules
 
 1. Treat the child thread as the single source of truth for that subtask.
 2. Keep raw execution chatter in the child thread.
-3. End with a summary that planner can paste or relay upstream.
-4. If blocked, say exactly what is missing instead of bouncing between threads.
+3. End with a summary that planner can relay upstream.
+4. If blocked, state exactly what is missing.
 
 ---
 
-## 4. What this repo does not claim
+## 6. Operator Checklist
 
-This repository does **not** implement Discord thread creation by itself.
-
-It does **not** ship a Discord bot runtime.
-
-The child-thread flow depends on an **external Discord runtime** being installed and running.
-
-That distinction is intentional so the docs stay truthful.
-
----
-
-## 5. Minimum operator checklist
-
-Before using planner child threads, confirm all of the following:
-
-- `./setup.sh` has already provisioned the OpenClaw agents
-- a Discord runtime is installed and running
-- the project is linked to a Discord channel
-- you know the project channel ID or existing child thread ID
-- `./scripts/discord-thread-dispatch.sh --dry-run ...` renders the command shape you expect
+- [ ] `./setup.sh` completed
+- [ ] Bot tokens configured per account in `openclaw.json`
+- [ ] `openclaw gateway` running
+- [ ] All bots online in Discord
+- [ ] `openclaw channels status --probe` shows Discord healthy
+- [ ] `./scripts/discord-thread-dispatch.sh --channel <id> --agent planner --prompt "test" --dry-run` prints expected command
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
-### The child thread was created but work did not start
-
-Prefer using your Discord runtime's managed thread/session creation path instead of manually creating a Discord thread by hand.
-
-### The planner should create a thread shell first
-
-Use `--notify-only`.
-
-### I need to resume the same discussion later
-
-Use `--thread <thread-id>` or `--session <session-id>`.
-
-### I need clean git isolation
-
-Use `--worktree <name>` if your external runtime supports it.
+| Problem | Solution |
+|---|---|
+| Thread created but no response | Check `openclaw logs --follow`, verify bot token and guild config |
+| Bot offline | Verify token in `channels.discord.accounts.<agent>.token` |
+| Mention not triggering | Use numeric `<@id>` in plain text, not in code blocks |
+| Wrong agent responds | Check `bindings[].match.accountId` mapping |
+| Permission denied | Verify bot has Send Messages in Threads permission |

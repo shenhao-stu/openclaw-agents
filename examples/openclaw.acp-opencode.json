@@ -1,0 +1,68 @@
+{
+  "$comment": "Example: coder agent backed by OpenCode via ACP (acpx plugin).",
+  "$comment2": "Install acpx: openclaw plugins install acpx && openclaw config set plugins.entries.acpx.enabled true",
+
+  "acp": {
+    "enabled": true,
+    "backend": "acpx",
+    "defaultAgent": "opencode",
+    "allowedAgents": ["opencode", "claude", "codex", "pi", "gemini"],
+    "maxConcurrentSessions": 4,
+    "stream": {
+      "coalesceIdleMs": 300,
+      "maxChunkChars": 1200
+    },
+    "runtime": {
+      "ttlMinutes": 120
+    }
+  },
+
+  "session": {
+    "threadBindings": {
+      "enabled": true,
+      "idleHours": 24,
+      "maxAgeHours": 0
+    }
+  },
+
+  "channels": {
+    "discord": {
+      "threadBindings": {
+        "enabled": true,
+        "spawnAcpSessions": true,
+        "spawnSubagentSessions": true
+      }
+    }
+  },
+
+  "plugins": {
+    "entries": {
+      "acpx": {
+        "enabled": true,
+        "config": {
+          "permissionMode": "approve-all",
+          "nonInteractivePermissions": "deny"
+        }
+      }
+    }
+  },
+
+  "agents": {
+    "list": [
+      {
+        "id": "coder",
+        "runtime": {
+          "type": "acp",
+          "acp": {
+            "agent": "opencode",
+            "backend": "acpx",
+            "mode": "persistent"
+          }
+        },
+        "subagents": {
+          "allowAgents": ["*"]
+        }
+      }
+    ]
+  }
+}

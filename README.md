@@ -1,55 +1,41 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
   <br/>
-  <img src="https://img.shields.io/badge/version-3.1.0-brightgreen?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-4.2.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
-  <img src="https://img.shields.io/badge/discord-thread%20orchestration-purple?style=flat-square" alt="Discord Threads">
+  <img src="https://img.shields.io/badge/agents-8-orange?style=flat-square" alt="Agents">
+  <img src="https://img.shields.io/badge/discord-native%20multi--bot-purple?style=flat-square" alt="Discord">
 </p>
 
-<h1 align="center">🐾 OpenClaw Agents</h1>
+<h1 align="center">OpenClaw Agents</h1>
 
 <p align="center">
-  <strong>OpenClaw agent fleet + Discord thread orchestration SOP</strong>
+  <strong>Multi-agent fleet provisioning + Discord thread collaboration SOP</strong>
   <br/>
-  <em>Provision a multi-agent team with OpenClaw, then run planner-led Discord parent-thread / child-thread collaboration.</em>
+  <em>One setup.sh → 8 agents, each with its own Discord bot, workspace, and identity.</em>
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-how-it-works">How It Works</a> •
-  <a href="#-discord-model">Discord Model</a> •
-  <a href="#-agents">Agents</a> •
-  <a href="#-planner-child-thread-sop">Planner Child-Thread SOP</a> •
-  <a href="#-repository-structure">Repository Structure</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#discord-thread-model">Discord Model</a> •
+  <a href="#sop">SOP</a> •
   <a href="./README_ZH.md">简体中文</a>
 </p>
 
 ---
 
-## ✨ What this repository is
+## What This Is
 
-**OpenClaw Agents** is a ready-to-run agent fleet for OpenClaw.
+`openclaw-agents` provisions an 8-agent OpenClaw fleet with Discord multi-bot routing:
 
-It gives you:
-
-- 8 core sub-agents + 1 main orchestrator identity
-- per-agent workspaces
-- bootstrap files for self-merge
-- OpenClaw routing config for local or channel mode
-- planner-centered collaboration patterns
-- a documented Discord workflow built around **parent-thread / child-thread collaboration**
-
-The key design decision in this branch is simple:
-
-- **OpenClaw Agents** handles the **agent fleet**
-- **An external Discord runtime** handles the **Discord bot, channels, threads, and session transport**
-
-That split is deliberate and truthful.
+- `setup.sh` creates agents, workspaces, icons, routing, and Discord mention rules.
+- Each agent has its own Discord bot account. OpenClaw routes natively via `accountId` → `agentId` bindings.
+- `SKILL.md` is the AI-agent entrypoint (follows [AgentSkills](https://skills.sh/) spec).
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 git clone https://github.com/shenhao-stu/openclaw-agents.git
@@ -58,278 +44,156 @@ chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh
 ```
 
-If you want Discord task threads after the OpenClaw setup succeeds, configure your preferred Discord runtime and then create or continue threads with:
+Local:
 
 ```bash
-./scripts/discord-thread-dispatch.sh --channel <project-channel-id> --prompt "Start a planner child thread for this task" --dry-run
+openclaw gateway
+openclaw tui
 ```
 
-Detailed guides:
+Discord (after configuring bot tokens):
 
-- `docs/installation.md`
-- `docs/discord-setup.md`
-- `docs/discord-thread-sop.md`
+```bash
+openclaw gateway
+openclaw message thread create --channel discord \
+  --target channel:<channelId> \
+  --thread-name "planner: task" \
+  --message "Coordinate agents." --account planner
+```
+
+AI agents read `SKILL.md` first.
 
 ---
 
-## 🧠 How It Works
+## Architecture
 
-### Layer 1 — OpenClaw fleet provisioning
+### Layer 1 — Fleet Provisioning
 
-`./setup.sh` does the following:
+`./setup.sh`:
 
-1. verifies `openclaw` and `jq`
-2. creates 8 core sub-agents
-3. creates workspaces under `~/.openclaw/workspace-<id>`
-4. deploys `_soul_source.md`, `_user_source.md`, `_agent_source.md`, and `BOOTSTRAP.md`
-5. appends workflow references into each generated `AGENTS.md`
-6. updates `~/.openclaw/openclaw.json`
-7. if `discord` is selected, optionally prepends real `<@...>` mention IDs
+1. Verifies `openclaw` + `jq`
+2. Creates 8 agents with independent workspaces under `~/.openclaw/workspace-<id>`
+3. Deploys bootstrap, source files, openclaw-icons
+4. Generates `~/.openclaw/openclaw.json` with agent list, bindings, and Discord config
+5. If Discord: injects mention patterns and mention guard into agent prompts
 
-### Layer 2 — Discord thread/session runtime
+### Layer 2 — Discord Multi-Bot Routing
 
-This repository assumes you have some **external Discord runtime** for channels, threads, and session transport.
+Each agent = one Discord bot account. OpenClaw config:
 
-It provides:
+```json5
+{
+  bindings: [
+    { agentId: "planner", match: { channel: "discord", accountId: "planner" } },
+    { agentId: "coder",   match: { channel: "discord", accountId: "coder" } },
+    // ...
+  ],
+  channels: { discord: { accounts: { planner: { token: "..." }, coder: { token: "..." } } } }
+}
+```
 
-- one Discord channel per project
-- one Discord thread per task/session
-- `send --channel` to create a new task thread
-- `send --thread` or `send --session` to continue work
-- optional `--worktree` isolation
-- optional `--notify-only` thread shells
-
-This is why the docs in this repo now describe a **Discord runtime-backed** workflow instead of pretending `setup.sh` can create child threads by itself.
+Ref: [Multi-Agent Routing](https://docs.openclaw.ai/concepts/multi-agent), [Discord](https://docs.openclaw.ai/channels/discord)
 
 ---
 
-## 💬 Discord Model
+## Discord Thread Model
 
-Use this mental model:
-
-- **Discord channel = project**
-- **Discord thread = task / session**
-- **Parent thread = planner-facing control plane**
-- **Child thread = delegated subtask execution**
-
-### Why this matters
-
-The repo already defines planner as the coordination hub, but the repo itself is not a Discord bot runtime.
-
-So the practical implementation is:
-
-- use OpenClaw for the agents
-- use your Discord runtime for the thread/session transport
-- keep the parent thread readable
-- move implementation chatter into child threads
-- have planner summarize results back to the user
-
----
-
-## 🤖 Agents
-
-| Agent | ID | Role |
-|---|---|---|
-| 🐾 OpenClaw | `main` | Root orchestrator / final arbiter |
-| 🧠 Planner | `planner` | Task decomposition, routing, coordination |
-| 💡 Ideator | `ideator` | Idea generation and framing |
-| 🎯 Critic | `critic` | Taste gate / SHARP evaluation |
-| 📚 Surveyor | `surveyor` | Literature review and gap finding |
-| 💻 Coder | `coder` | Implementation and experiments |
-| ✍️ Writer | `writer` | Drafting and technical writing |
-| 🔍 Reviewer | `reviewer` | Review, quality gates, veto |
-| 📰 Scout | `scout` | Trend and paper monitoring |
-
-### Planner is special
-
-Planner is the only role in this repo explicitly positioned to:
-
-- coordinate all other agents
-- maintain project state
-- spawn or route follow-up work
-- summarize progress back to the user
-
-That is why planner is the natural owner of parent-thread → child-thread orchestration.
-
----
-
-## 🧵 Planner Child-Thread SOP
-
-### Create a child thread immediately
-
-```bash
-./scripts/discord-thread-dispatch.sh \
-  --channel <project-channel-id> \
-  --agent planner \
-  --name "planner: auth bug triage" \
-  --prompt "Open a child thread, coordinate coder and reviewer there, and summarize the final result back in the parent thread."
-```
-
-### Create a thread shell first
-
-```bash
-./scripts/discord-thread-dispatch.sh \
-  --channel <project-channel-id> \
-  --notify-only \
-  --name "planner: release review" \
-  --prompt "Planner child thread created. Reply here to begin execution. Final summary must go back to the parent thread."
-```
-
-### Continue an existing child thread
-
-```bash
-./scripts/discord-thread-dispatch.sh \
-  --thread <thread-id> \
-  --agent coder \
-  --prompt "Continue from the last checkpoint and post a patch summary."
-```
-
-### Continue by session ID
-
-```bash
-./scripts/discord-thread-dispatch.sh \
-  --session <session-id> \
-  --agent reviewer \
-  --prompt "Review the latest changes and split issues into blockers and non-blockers."
-```
-
-### Isolated git worktree
-
-```bash
-./scripts/discord-thread-dispatch.sh \
-  --channel <project-channel-id> \
-  --agent coder \
-  --worktree issue-123 \
-  --name "issue-123 fix" \
-  --prompt "Implement the fix in an isolated worktree and report test status."
-```
-
-See `docs/discord-thread-sop.md` for the full SOP.
-
----
-
-## ⚠️ The Discord mention rule you must not ignore
-
-Discord mentions are real only when they use numeric IDs like:
-
-```text
-<@123456789012345678>
-```
-
-Do not hide them only inside tables or code blocks.
-
-Bad:
-
-```markdown
-| Agent | Task |
+| Concept | Meaning |
 |---|---|
-| <@123456789012345678> | Implement auth fix |
-```
+| parent thread | User-facing control plane |
+| child thread | Agent collaboration zone |
+| planner | Scheduler and summarizer |
 
-Good:
-
-```text
-<@123456789012345678>, please start the task above now.
-```
-
-This is why `setup.sh` injects a Discord mention guard into every agent workspace when Discord mode is selected.
+Flow: `@planner` receives task → creates child thread → coordinates coder/reviewer/surveyor → returns summary to parent thread → pings user.
 
 ---
 
-## 🔧 Setup Modes
+## SOP
 
-### Local Workflow Mode
+Provision:
 
 ```bash
-./setup.sh --mode local
+./setup.sh --mode channel --channel discord --group-id <guild-id>
 ```
 
-Use this when you want OpenClaw-native `agentToAgent` collaboration without Discord.
-
-### Channel Mode
+Configure bot tokens:
 
 ```bash
-./setup.sh --mode channel --channel feishu --group-id oc_xxx
-./setup.sh --mode channel --channel telegram --group-id -1001234567890
-./setup.sh --mode channel --channel discord --group-id 123456789012345678
+openclaw config set channels.discord.accounts.planner.token '"TOKEN"' --json
+openclaw config set channels.discord.accounts.coder.token '"TOKEN"' --json
+# ... per agent
 ```
 
-Useful flags:
+Start:
 
 ```bash
-./setup.sh \
-  --mode channel \
-  --channel discord \
-  --group-id 123456789012345678 \
-  --model zai/glm-5 \
-  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7' \
-  --require-mention true
-```
-
----
-
-## ✅ Verification
-
-### OpenClaw side
-
-```bash
-openclaw agents list --bindings
 openclaw gateway
 ```
 
-### Discord runtime side
+Create child thread:
 
-Verify that your external Discord runtime is online and attached to the right project channel/thread layer.
+```bash
+./scripts/discord-thread-dispatch.sh --channel <channelId> \
+  --agent planner --name "planner: auth bug" \
+  --prompt "Coordinate coder and reviewer. Return summary to parent."
+```
 
-Then confirm:
+Continue thread:
 
-- the bot is online
-- the project channel exists
-- sending a message creates or resumes a thread
-- `./scripts/discord-thread-dispatch.sh --dry-run ...` renders the expected command
+```bash
+./scripts/discord-thread-dispatch.sh --thread <threadId> \
+  --prompt "Continue from checkpoint."
+```
+
+Local (no Discord):
+
+```bash
+openclaw tui
+# or: openclaw dashboard
+# or: openclaw agent --agent planner --message "Your task"
+```
 
 ---
 
-## 📁 Repository Structure
+## Discord Mention Rule
+
+Use numeric IDs: `<@123456789012345678>`. Do not hide them in code blocks or tables. End with a plain-text line for guaranteed notification.
+
+---
+
+## Repository Structure
 
 ```text
 openclaw-agents/
-├── setup.sh                     # OpenClaw fleet setup and routing
-├── agents.yaml                  # Manifest/reference metadata
+├── setup.sh                        # Fleet provisioning
+├── SKILL.md                        # AI agent entrypoint (AgentSkills spec)
+├── agents.yaml                     # Agent manifest
+├── openclaw-icons/                 # Agent avatars
 ├── docs/
-│   ├── installation.md          # Installation guide
-│   ├── discord-setup.md         # Discord setup guide
-│   └── discord-thread-sop.md    # Parent/child thread SOP
+│   ├── installation.md
+│   ├── discord-setup.md            # Discord multi-bot SOP
+│   └── discord-thread-sop.md       # Thread collaboration SOP
 ├── scripts/
-│   └── discord-thread-dispatch.sh # Generic Discord thread dispatcher wrapper
+│   └── discord-thread-dispatch.sh  # Thread dispatcher (wraps openclaw message)
 ├── examples/
-│   ├── openclaw.local.json
-│   ├── openclaw.feishu.json
-│   ├── openclaw.telegram.json
-│   └── openclaw.whatsapp.json
+│   └── openclaw.*.json
 └── .agents/
-    ├── planner/
-    ├── ideator/
-    ├── critic/
-    ├── surveyor/
-    ├── coder/
-    ├── writer/
-    ├── reviewer/
-    ├── scout/
+    ├── planner/, coder/, ...       # Agent personas
     └── workflows/
 ```
 
 ---
 
-## 📚 Related Docs
+## Docs
 
+- [SKILL.md](SKILL.md) — AI agent entrypoint
 - [Installation](docs/installation.md)
-- [Discord Setup Guide](docs/discord-setup.md)
-- [Discord Thread SOP](docs/discord-thread-sop.md)
-- [简体中文 README](README_ZH.md)
+- [Discord Setup](docs/discord-setup.md)
+- [Thread SOP](docs/discord-thread-sop.md)
+- [OpenClaw Docs](https://docs.openclaw.ai/)
 
 ---
 
-## 📄 License
+## License
 
 [MIT](LICENSE)

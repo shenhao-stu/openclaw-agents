@@ -1,0 +1,21 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="20" fill="#111111"/>
+  
+  <!-- clipboard body -->
+  <rect x="22" y="26" width="56" height="58" rx="6" fill="#333333" opacity="0.82"/>
+  <!-- clip -->
+  <rect x="38" y="19" width="24" height="14" rx="7" fill="#AAAAAA" opacity="0.5"/>
+  <!-- row 1 check -->
+  <polyline points="30,44 37,52 50,37"
+    fill="none" stroke="#EEEEEE" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="56" y1="44" x2="70" y2="44" stroke="#AAAAAA" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <!-- row 2 check -->
+  <polyline points="30,60 37,68 50,53"
+    fill="none" stroke="#EEEEEE" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="56" y1="60" x2="70" y2="60" stroke="#AAAAAA" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <!-- badge -->
+  <circle cx="72" cy="76" r="9" fill="#FF3D6B"/>
+  <polyline points="67.5,76 71,79.5 76.5,72.5"
+    fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

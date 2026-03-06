@@ -1,0 +1,20 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="20" fill="#111111"/>
+  
+  <!-- card bg -->
+  <rect x="16" y="18" width="68" height="64" rx="6" fill="#333333" opacity="0.8"/>
+  <!-- header -->
+  <rect x="16" y="18" width="68" height="14" rx="6" fill="#555555" opacity="0.6"/>
+  <!-- row 1 -->
+  <rect x="20" y="38" width="36" height="9" rx="3" fill="#EEEEEE" opacity="0.7"/>
+  <!-- row 2 -->
+  <rect x="20" y="52" width="52" height="9" rx="3" fill="#AAAAAA" opacity="0.45"/>
+  <rect x="20" y="52" width="24" height="9" rx="3" fill="#AAAAAA" opacity="0.45"/>
+  <!-- row 3 -->
+  <rect x="20" y="66" width="44" height="9" rx="3" fill="#AAAAAA" opacity="0.35"/>
+  <!-- milestone dot -->
+  <circle cx="56" cy="42.5" r="5" fill="#FF3D6B"/>
+  <!-- connector -->
+  <line x1="56" y1="47.5" x2="56" y2="52" stroke="#FF3D6B" stroke-width="1.5" stroke-dasharray="2 2" stroke-linecap="round"/>
+
+</svg>

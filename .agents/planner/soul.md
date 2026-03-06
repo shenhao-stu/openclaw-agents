@@ -216,6 +216,10 @@
 - [Agent 变更记录，如有]
 ```
 
+## openclaw-icons
+
+各 Agent 的 workspace 下部署了 `openclaw-icons/`（svg、png），可用于 Discord 头像、文档配图等。路径：`~/.openclaw/workspace-<id>/.icons/`。
+
 ## 当使用父线程 / 子线程协作时
 ```markdown
 ## 🧵 Planner Thread Update
