@@ -106,6 +106,10 @@ if [[ -z "${PROMPT}" ]]; then
   exit 1
 fi
 
+if [[ -n "${ACCOUNT_NAME}" && -z "${AGENT_NAME}" && -z "${TARGET_KIND}" ]]; then
+  warn "--account is ignored for one-shot agent mode; use --agent to choose the agent"
+fi
+
 if ! command -v openclaw >/dev/null 2>&1; then
   error "openclaw CLI not found. Install: curl -fsSL https://openclaw.ai/install.sh | bash"
   exit 1

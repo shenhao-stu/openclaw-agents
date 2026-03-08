@@ -30,7 +30,7 @@
 `openclaw-agents` provisions an 8-agent OpenClaw fleet with Discord multi-bot routing:
 
 - `setup.sh` creates agents, workspaces, icons, routing, and Discord mention rules.
-- Each agent has its own Discord bot account. OpenClaw routes natively via `accountId` → `agentId` bindings.
+- In Discord mode, `setup.sh` now generates native `accountId` → `agentId` bindings plus `channels.discord.accounts` skeleton entries for each bot account.
 - `SKILL.md` is the AI-agent entrypoint (follows [AgentSkills](https://skills.sh/) spec).
 
 ---
@@ -42,6 +42,12 @@ git clone https://github.com/shenhao-stu/openclaw-agents.git
 cd openclaw-agents
 chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh
+```
+
+Preview generated config without touching `~/.openclaw/openclaw.json`:
+
+```bash
+./setup.sh --mode channel --channel discord --group-id <guild-id> --dry-run
 ```
 
 Local:

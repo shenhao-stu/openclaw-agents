@@ -57,6 +57,12 @@ chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ./setup.sh --mode channel --channel discord --group-id <your-guild-id>
 ```
 
+For a config preview without writing local OpenClaw state:
+
+```bash
+./setup.sh --mode channel --channel discord --group-id <your-guild-id> --dry-run
+```
+
 ---
 
 ## Step 3 — Configure Bot Tokens
@@ -124,7 +130,7 @@ Each account routes to its agent:
 }
 ```
 
-`setup.sh` generates this automatically.
+`setup.sh` now generates the `accountId` bindings automatically and initializes empty `channels.discord.accounts.<agent>` entries plus `channels.discord.accounts.default`. After setup, you still need to fill in real bot tokens and, if desired, richer guild/channel allowlists.
 
 ---
 

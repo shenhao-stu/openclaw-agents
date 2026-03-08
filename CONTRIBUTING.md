@@ -15,8 +15,9 @@ Thank you for your interest in contributing to OpenClaw Agents! 🦞
 1. **Fork** this repository
 2. **Create a branch**: `git checkout -b agent/your-agent-name`
 3. Create agent files following the [Agent Structure Guide](#agent-structure-guide)
-4. Update `agents.yaml` manifest
-5. Submit a **Pull Request**
+4. Update `agents.yaml` manifest and keep it in sync with `setup.sh` validation expectations
+5. Run `make test` (or at minimum the shell checks) before submitting
+6. Submit a **Pull Request**
 
 ### Agent Structure Guide
 

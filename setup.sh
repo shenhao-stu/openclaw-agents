@@ -77,6 +77,7 @@ banner() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="${SCRIPT_DIR}/.agents"
+MANIFEST_PATH="${SCRIPT_DIR}/agents.yaml"
 OPENCLAW_HOME="${HOME}/.openclaw"
 OPENCLAW_CONFIG="${OPENCLAW_HOME}/openclaw.json"
 DEFAULT_MODEL="zai/glm-5"
@@ -91,6 +92,8 @@ CORE_AGENTS=(
   "reviewer|Reviewer|🔍|内部审稿人"
   "scout|Scout|📰|学术情报员"
 )
+WORKFLOW_BLOCK_BEGIN="<!-- openclaw-workflows:begin -->"
+WORKFLOW_BLOCK_END="<!-- openclaw-workflows:end -->"
 
 MODE=""
 CHANNEL=""
@@ -143,6 +146,124 @@ get_group() {
   echo "${AGENT_GROUPS[${agent_id}]:-${GROUP_ID}}"
 }
 
+validate_manifest() {
+  if [[ ! -f "${MANIFEST_PATH}" ]]; then
+    error "Manifest not found: ${MANIFEST_PATH}"
+    exit 1
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    error "python3 is required to validate agents.yaml consistency"
+    exit 1
+  fi
+
+  local manifest_agents
+  manifest_agents="$(python3 - <<'PY' "${MANIFEST_PATH}"
+import sys
+path = sys.argv[1]
+entries = []
+current = None
+in_agents = False
+with open(path, encoding='utf-8') as fh:
+    for raw in fh:
+        line = raw.rstrip('\n')
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        if stripped == 'agents:':
+            in_agents = True
+            continue
+        if in_agents and not line.startswith('  '):
+            break
+        if not in_agents:
+            continue
+        if stripped.startswith('- id:'):
+            if current:
+                entries.append(current)
+            current = {'id': stripped.split(':', 1)[1].strip().strip('"')}
+            continue
+        if current is None:
+            continue
+        if ':' not in stripped:
+            continue
+        key, value = stripped.split(':', 1)
+        current[key.strip()] = value.strip().strip('"')
+    if current:
+        entries.append(current)
+for item in entries:
+    if item.get('default') == 'true':
+        continue
+    print('{id}|{display}|{emoji}'.format(
+        id=item.get('id', ''),
+        display=item.get('name', '').replace(item.get('emoji', ''), '').strip(),
+        emoji=item.get('emoji', '')
+    ))
+PY
+)"
+
+  local manifest_count
+  manifest_count="$(printf '%s\n' "${manifest_agents}" | sed '/^$/d' | wc -l | tr -d ' ')"
+  if [[ "${manifest_count}" -ne "${#CORE_AGENTS[@]}" ]]; then
+    error "agents.yaml defines ${manifest_count} non-default agents, but setup.sh expects ${#CORE_AGENTS[@]}"
+    exit 1
+  fi
+
+  local manifest_sorted core_sorted
+  manifest_sorted="$(printf '%s\n' "${manifest_agents}" | sed '/^$/d' | sort)"
+  core_sorted="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1-3 | sort)"
+  if [[ "${manifest_sorted}" != "${core_sorted}" ]]; then
+    error "agents.yaml and setup.sh agent inventory are out of sync"
+    echo "Manifest:" >&2
+    printf '%s\n' "${manifest_sorted}" >&2
+    echo "setup.sh:" >&2
+    printf '%s\n' "${core_sorted}" >&2
+    exit 1
+  fi
+}
+
+render_workflow_block() {
+  local id="$1"
+  local name="$2"
+  local emoji="$3"
+  local workflow_dir="${AGENTS_DIR}/workflows"
+
+  {
+    echo "${WORKFLOW_BLOCK_BEGIN}"
+    echo ""
+    echo "---"
+    echo "# 📋 Workflow Reference for ${emoji} ${name}"
+    echo ""
+    case "${id}" in
+      planner)
+        for wf in paper-pipeline brainstorm rebuttal daily-digest; do
+          [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
+        done
+        ;;
+      ideator|critic)
+        for wf in brainstorm paper-pipeline; do
+          [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
+        done
+        ;;
+      surveyor)
+        for wf in brainstorm paper-pipeline rebuttal; do
+          [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
+        done
+        ;;
+      coder|writer|reviewer)
+        for wf in paper-pipeline rebuttal; do
+          [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
+        done
+        ;;
+      scout)
+        for wf in daily-digest paper-pipeline brainstorm; do
+          [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
+        done
+        ;;
+    esac
+    echo "${WORKFLOW_BLOCK_END}"
+  }
+}
+
 run() {
   if [[ "${DRY_RUN}" == true ]]; then
     echo -e "  ${DIM}$*${NC}"
@@ -168,6 +289,8 @@ preflight() {
     error "Agent source directory not found: ${AGENTS_DIR}"
     exit 1
   fi
+
+  validate_manifest
 
   mkdir -p "${OPENCLAW_HOME}"
   if [[ ! -f "${OPENCLAW_CONFIG}" ]]; then
@@ -257,47 +380,46 @@ deploy_openclaw_icons() {
 
 append_workflows() {
   step "[6/8] Appending workflow references"
-  local workflow_dir="${AGENTS_DIR}/workflows"
 
   for entry in "${CORE_AGENTS[@]}"; do
     IFS='|' read -r id name emoji role <<< "${entry}"
     local workspace="${OPENCLAW_HOME}/workspace-${id}"
     local agents_md="${workspace}/AGENTS.md"
+    local tmp_block tmp_agents
+    tmp_block="$(mktemp)"
+    tmp_agents="$(mktemp)"
     [[ ! -f "${agents_md}" ]] && touch "${agents_md}"
 
-    {
-      echo ""
-      echo "---"
-      echo "# 📋 Workflow Reference for ${emoji} ${name}"
-      echo ""
-      case "${id}" in
-        planner)
-          for wf in paper-pipeline brainstorm rebuttal daily-digest; do
-            [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
-          done
-          ;;
-        ideator|critic)
-          for wf in brainstorm paper-pipeline; do
-            [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
-          done
-          ;;
-        surveyor)
-          for wf in brainstorm paper-pipeline rebuttal; do
-            [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
-          done
-          ;;
-        coder|writer|reviewer)
-          for wf in paper-pipeline rebuttal; do
-            [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
-          done
-          ;;
-        scout)
-          for wf in daily-digest paper-pipeline brainstorm; do
-            [[ -f "${workflow_dir}/${wf}.md" ]] && { echo "---"; cat "${workflow_dir}/${wf}.md"; }
-          done
-          ;;
-      esac
-    } >> "${agents_md}"
+    render_workflow_block "${id}" "${name}" "${emoji}" > "${tmp_block}"
+
+    python3 - <<'PY' "${agents_md}" "${tmp_block}" "${WORKFLOW_BLOCK_BEGIN}" "${WORKFLOW_BLOCK_END}" > "${tmp_agents}"
+import sys
+agents_md, block_path, begin, end = sys.argv[1:5]
+with open(agents_md, encoding='utf-8') as fh:
+    content = fh.read()
+with open(block_path, encoding='utf-8') as fh:
+    block = fh.read().rstrip() + "\n"
+while True:
+    start = content.find(begin)
+    if start == -1:
+        break
+    finish = content.find(end, start)
+    if finish == -1:
+        content = content[:start]
+        break
+    finish += len(end)
+    while finish < len(content) and content[finish] == '\n':
+        finish += 1
+    content = content[:start].rstrip() + "\n"
+content = content.rstrip()
+if content:
+    content += "\n\n"
+content += block
+print(content.rstrip() + "\n", end="")
+PY
+
+    mv "${tmp_agents}" "${agents_md}"
+    rm -f "${tmp_block}"
   done
 }
 
@@ -362,13 +484,17 @@ prompt_mode_and_channel() {
   fi
 
   if [[ -z "${REQUIRE_MENTION}" ]]; then
-    echo -e "\n${BOLD}Require @mention before an agent replies?${NC}"
-    echo -en "  Choice [Y/n]: "
-    read -r mention_choice
-    case "${mention_choice}" in
-      n|N|no) REQUIRE_MENTION="false" ;;
-      *) REQUIRE_MENTION="true" ;;
-    esac
+    if [[ "${DRY_RUN}" == true || ! -t 0 ]]; then
+      REQUIRE_MENTION="true"
+    else
+      echo -e "\n${BOLD}Require @mention before an agent replies?${NC}"
+      echo -en "  Choice [Y/n]: "
+      read -r mention_choice
+      case "${mention_choice}" in
+        n|N|no) REQUIRE_MENTION="false" ;;
+        *) REQUIRE_MENTION="true" ;;
+      esac
+    fi
   fi
 }
 
@@ -381,6 +507,11 @@ configure_discord_mentions() {
   echo -e "${YELLOW}Discord requires real numeric mentions like <@123...>.${NC}"
   echo -e "${DIM}Tip: enable Developer Mode, then right-click the bot/user avatar and copy the user ID.${NC}"
   echo ""
+
+  if [[ "${DRY_RUN}" == true || ! -t 0 ]]; then
+    info "Skipping interactive Discord ID prompts in dry-run/non-interactive mode"
+    return
+  fi
 
   declare -A DISCORD_IDS
   for entry in "${CORE_AGENTS[@]}"; do
@@ -518,42 +649,96 @@ configure_config() {
           }
         }
     ' "${OPENCLAW_CONFIG}" > "${tmp_file}"
+  elif [[ "${CHANNEL}" == "discord" ]]; then
+    local bindings_json='[]'
+    local accounts_json='{}'
+
+    for entry in "${CORE_AGENTS[@]}"; do
+      IFS='|' read -r id name emoji role <<< "${entry}"
+      bindings_json="$(jq --arg agent_id "${id}" '. + [{
+        agentId: $agent_id,
+        match: {
+          channel: "discord",
+          accountId: $agent_id
+        }
+      }]' <<< "${bindings_json}")"
+      accounts_json="$(jq --arg account_id "${id}" '. + {
+        ($account_id): {
+          token: "",
+          streaming: "partial"
+        }
+      }' <<< "${accounts_json}")"
+    done
+    bindings_json="$(jq '. + [{
+      agentId: "main",
+      match: {
+        channel: "discord",
+        accountId: "default"
+      }
+    }]' <<< "${bindings_json}")"
+    accounts_json="$(jq '. + {
+      default: {
+        token: "",
+        streaming: "partial"
+      }
+    }' <<< "${accounts_json}")"
+
+    jq --slurpfile new_agents "${tmp_agents}" \
+       --argjson new_bindings "${bindings_json}" \
+       --argjson our_ids "${our_ids}" \
+       --argjson new_accounts "${accounts_json}" '
+      $new_agents[0] as $agents |
+      .agents = (.agents // {})
+      | .agents.list = (
+          [(.agents.list // [])[] | select(.id as $id | $our_ids | index($id) | not)]
+          + $agents
+        )
+      | .bindings = (
+          [(.bindings // [])[]
+            | select((.agentId as $aid | $our_ids | index($aid) | not) and (.agentId != "main"))]
+          + $new_bindings
+        )
+      | .channels = (.channels // {})
+      | .channels.discord = (
+          (.channels.discord // {}) * {
+            "enabled": true,
+            "groupPolicy": "open",
+            "accounts": ((.channels.discord.accounts // {}) * $new_accounts)
+          }
+        )
+      | .messages = (.messages // {}) * {
+          "groupChat": { "historyLimit": (.messages.groupChat.historyLimit // 50) }
+        }
+    ' "${OPENCLAW_CONFIG}" > "${tmp_file}"
   else
-    local bindings_json='['
+    local bindings_json='[]'
     local all_group_ids=()
-    first=true
 
     for entry in "${CORE_AGENTS[@]}"; do
       IFS='|' read -r id name emoji role <<< "${entry}"
       local agent_group
       agent_group="$(get_group "${id}")"
-      [[ "${first}" == true ]] && first=false || bindings_json+=','
-      bindings_json+="$(cat <<EOF
-{
-  \"agentId\": \"${id}\",
-  \"match\": {
-    \"channel\": \"${CHANNEL}\",
-    \"peer\": { \"kind\": \"group\", \"id\": \"${agent_group}\" }
-  }
-}
-EOF
-)"
+      bindings_json="$(jq --arg agent_id "${id}" --arg channel "${CHANNEL}" --arg group_id "${agent_group}" '. + [{
+        agentId: $agent_id,
+        match: {
+          channel: $channel,
+          peer: { kind: "group", id: $group_id }
+        }
+      }]' <<< "${bindings_json}")"
       if [[ ! " ${all_group_ids[*]:-} " =~ " ${agent_group} " ]]; then
         all_group_ids+=("${agent_group}")
       fi
     done
-    bindings_json+=']'
 
     local require_mention_bool=true
     [[ "${REQUIRE_MENTION}" == "false" ]] && require_mention_bool=false
 
-    local groups_json="{"
-    first=true
+    local groups_json='{}'
     for gid in "${all_group_ids[@]}"; do
-      [[ "${first}" == true ]] && first=false || groups_json+="," 
-      groups_json+="\"${gid}\": { \"requireMention\": ${require_mention_bool} }"
+      groups_json="$(jq --arg gid "${gid}" --argjson require_mention "${require_mention_bool}" '. + {
+        ($gid): { requireMention: $require_mention }
+      }' <<< "${groups_json}")"
     done
-    groups_json+="}"
 
     jq --slurpfile new_agents "${tmp_agents}" \
        --argjson new_bindings "${bindings_json}" \
