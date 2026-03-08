@@ -51,7 +51,7 @@ Universal:
 
 SOP Steps (what this script does):
   1. Preflight: openclaw, jq
-  2. Create 8 core sub-agents + workspaces
+  2. Create manifest-defined core sub-agents + workspaces
   3. Deploy bootstrap + source files
   4. Append workflow refs to AGENTS.md
   5. Deploy openclaw-icons to workspaces
@@ -80,18 +80,6 @@ AGENTS_DIR="${SCRIPT_DIR}/.agents"
 MANIFEST_PATH="${SCRIPT_DIR}/agents.yaml"
 OPENCLAW_HOME="${HOME}/.openclaw"
 OPENCLAW_CONFIG="${OPENCLAW_HOME}/openclaw.json"
-DEFAULT_MODEL="zai/glm-5"
-
-CORE_AGENTS=(
-  "planner|Planner|🧠|统筹规划师"
-  "ideator|Ideator|💡|创意大师"
-  "critic|Critic|🎯|品鉴师"
-  "surveyor|Surveyor|📚|文献专家"
-  "coder|Coder|💻|代码工程师"
-  "writer|Writer|✍️|论文写手"
-  "reviewer|Reviewer|🔍|内部审稿人"
-  "scout|Scout|📰|学术情报员"
-)
 WORKFLOW_BLOCK_BEGIN="<!-- openclaw-workflows:begin -->"
 WORKFLOW_BLOCK_END="<!-- openclaw-workflows:end -->"
 
@@ -99,13 +87,25 @@ MODE=""
 CHANNEL=""
 GROUP_ID=""
 GROUP_MAP=""
-MODEL="${DEFAULT_MODEL}"
+MODEL=""
 MODEL_MAP=""
+MODEL_EXPLICIT=false
 REQUIRE_MENTION=""
 DRY_RUN=false
+PROJECT_DEFAULT_MODEL=""
+DEFAULT_AGENT_ID=""
+DEFAULT_AGENT_NAME=""
+DEFAULT_AGENT_EMOJI=""
 
-declare -A AGENT_MODELS
+declare -a SUB_AGENT_IDS=()
+declare -A AGENT_NAMES
+declare -A AGENT_EMOJIS
+declare -A AGENT_ROLES
+declare -A AGENT_MANIFEST_MODELS
+declare -A AGENT_SOURCE_DIRS
+declare -A AGENT_PROTECTED
 declare -A AGENT_GROUPS
+declare -A AGENT_MODELS
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -113,7 +113,7 @@ while [[ $# -gt 0 ]]; do
     --channel) CHANNEL="${2:-}"; shift 2 ;;
     --group-id) GROUP_ID="${2:-}"; shift 2 ;;
     --group-map) GROUP_MAP="${2:-}"; shift 2 ;;
-    --model) MODEL="${2:-}"; shift 2 ;;
+    --model) MODEL="${2:-}"; MODEL_EXPLICIT=true; shift 2 ;;
     --model-map) MODEL_MAP="${2:-}"; shift 2 ;;
     --require-mention) REQUIRE_MENTION="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
@@ -136,9 +136,46 @@ if [[ -n "${GROUP_MAP}" ]]; then
   done
 fi
 
+resolve_manifest_path() {
+  local path="$1"
+  if [[ "${path}" == /* ]]; then
+    echo "${path}"
+  elif [[ "${path}" == "." ]]; then
+    echo "${SCRIPT_DIR}"
+  else
+    echo "${SCRIPT_DIR}/${path#./}"
+  fi
+}
+
+runtime_workspace() {
+  local agent_id="$1"
+  echo "${OPENCLAW_HOME}/workspace-${agent_id}"
+}
+
+sub_agent_count() {
+  echo "${#SUB_AGENT_IDS[@]}"
+}
+
+sub_agent_ids_json() {
+  printf '%s\n' "${SUB_AGENT_IDS[@]}" | jq -R . | jq -s .
+}
+
+agent_identity_name() {
+  local agent_id="$1"
+  echo "${AGENT_EMOJIS[${agent_id}]} ${AGENT_NAMES[${agent_id}]}"
+}
+
 get_model() {
   local agent_id="$1"
-  echo "${AGENT_MODELS[${agent_id}]:-${MODEL}}"
+  if [[ -n "${AGENT_MODELS[${agent_id}]:-}" ]]; then
+    echo "${AGENT_MODELS[${agent_id}]}"
+  elif [[ "${MODEL_EXPLICIT}" == true && -n "${MODEL}" ]]; then
+    echo "${MODEL}"
+  elif [[ -n "${AGENT_MANIFEST_MODELS[${agent_id}]:-}" ]]; then
+    echo "${AGENT_MANIFEST_MODELS[${agent_id}]}"
+  else
+    echo "${PROJECT_DEFAULT_MODEL}"
+  fi
 }
 
 get_group() {
@@ -146,78 +183,189 @@ get_group() {
   echo "${AGENT_GROUPS[${agent_id}]:-${GROUP_ID}}"
 }
 
-validate_manifest() {
+load_manifest() {
   if [[ ! -f "${MANIFEST_PATH}" ]]; then
     error "Manifest not found: ${MANIFEST_PATH}"
     exit 1
   fi
 
   if ! command -v python3 >/dev/null 2>&1; then
-    error "python3 is required to validate agents.yaml consistency"
+    error "python3 is required to read agents.yaml"
     exit 1
   fi
 
-  local manifest_agents
-  manifest_agents="$(python3 - <<'PY' "${MANIFEST_PATH}"
+  SUB_AGENT_IDS=()
+  PROJECT_DEFAULT_MODEL=""
+  DEFAULT_AGENT_ID=""
+  DEFAULT_AGENT_NAME=""
+  DEFAULT_AGENT_EMOJI=""
+  AGENT_NAMES=()
+  AGENT_EMOJIS=()
+  AGENT_ROLES=()
+  AGENT_MANIFEST_MODELS=()
+  AGENT_SOURCE_DIRS=()
+  AGENT_PROTECTED=()
+
+  local manifest_lines
+  manifest_lines="$(python3 - <<'PY' "${MANIFEST_PATH}"
 import sys
 path = sys.argv[1]
-entries = []
+project = {}
+agents = []
 current = None
-in_agents = False
+section = None
 with open(path, encoding='utf-8') as fh:
     for raw in fh:
         line = raw.rstrip('\n')
         stripped = line.strip()
         if not stripped or stripped.startswith('#'):
             continue
+        if stripped == 'project:':
+            section = 'project'
+            continue
         if stripped == 'agents:':
-            in_agents = True
+            if current is not None:
+                agents.append(current)
+                current = None
+            section = 'agents'
             continue
-        if in_agents and not line.startswith('  '):
-            break
-        if not in_agents:
+        if section == 'project':
+            if not line.startswith('  '):
+                section = None
+                continue
+            if ':' not in stripped:
+                continue
+            key, value = stripped.split(':', 1)
+            project[key.strip()] = value.strip().strip('"')
             continue
-        if stripped.startswith('- id:'):
-            if current:
-                entries.append(current)
-            current = {'id': stripped.split(':', 1)[1].strip().strip('"')}
-            continue
-        if current is None:
-            continue
-        if ':' not in stripped:
-            continue
-        key, value = stripped.split(':', 1)
-        current[key.strip()] = value.strip().strip('"')
-    if current:
-        entries.append(current)
-for item in entries:
-    if item.get('default') == 'true':
-        continue
-    print('{id}|{display}|{emoji}'.format(
-        id=item.get('id', ''),
-        display=item.get('name', '').replace(item.get('emoji', ''), '').strip(),
-        emoji=item.get('emoji', '')
-    ))
-PY
-)"
+        if section == 'agents':
+            if not line.startswith('  '):
+                if current is not None:
+                    agents.append(current)
+                current = None
+                section = None
+                continue
+            if stripped.startswith('- id:'):
+                if current is not None:
+                    agents.append(current)
+                current = {'id': stripped.split(':', 1)[1].strip().strip('"')}
+                continue
+            if current is None:
+                continue
+            if ':' not in stripped:
+                continue
+            key, value = stripped.split(':', 1)
+            current[key.strip()] = value.strip().strip('"')
+    if current is not None:
+        agents.append(current)
 
-  local manifest_count
-  manifest_count="$(printf '%s\n' "${manifest_agents}" | sed '/^$/d' | wc -l | tr -d ' ')"
-  if [[ "${manifest_count}" -ne "${#CORE_AGENTS[@]}" ]]; then
-    error "agents.yaml defines ${manifest_count} non-default agents, but setup.sh expects ${#CORE_AGENTS[@]}"
+if not project.get('default_model'):
+    raise SystemExit('agents.yaml is missing project.default_model')
+if not agents:
+    raise SystemExit('agents.yaml does not define any agents')
+
+seen = set()
+default_agents = []
+for agent in agents:
+    agent_id = agent.get('id', '')
+    if not agent_id:
+        raise SystemExit('agents.yaml contains an agent without id')
+    if agent_id in seen:
+        raise SystemExit(f'agents.yaml contains duplicate agent id: {agent_id}')
+    seen.add(agent_id)
+    if not agent.get('name'):
+        raise SystemExit(f'agents.yaml is missing name for agent: {agent_id}')
+    if not agent.get('emoji'):
+        raise SystemExit(f'agents.yaml is missing emoji for agent: {agent_id}')
+    if not agent.get('workspace'):
+        raise SystemExit(f'agents.yaml is missing workspace for agent: {agent_id}')
+    if str(agent.get('default', '')).lower() == 'true':
+        default_agents.append(agent)
+
+if len(default_agents) != 1:
+    raise SystemExit(f'agents.yaml must define exactly one default agent, found {len(default_agents)}')
+
+print('PROJECT\t' + project['default_model'])
+for agent in agents:
+    emoji = agent.get('emoji', '').strip()
+    raw_name = agent.get('name', '').strip()
+    plain_name = raw_name
+    if emoji and plain_name.startswith(emoji):
+        plain_name = plain_name[len(emoji):].strip()
+    print('\t'.join([
+        'AGENT',
+        agent.get('id', ''),
+        plain_name,
+        emoji,
+        agent.get('role', ''),
+        agent.get('model', ''),
+        agent.get('workspace', ''),
+        str(agent.get('protected', '')).lower(),
+        str(agent.get('default', '')).lower(),
+    ]))
+PY
+)" || {
+    error "Failed to parse ${MANIFEST_PATH}"
+    exit 1
+  }
+
+  while IFS=$'\t' read -r kind field1 field2 field3 field4 field5 field6 field7 field8; do
+    [[ -z "${kind}" ]] && continue
+    case "${kind}" in
+      PROJECT)
+        PROJECT_DEFAULT_MODEL="${field1}"
+        ;;
+      AGENT)
+        local agent_id="${field1}"
+        local plain_name="${field2}"
+        local emoji="${field3}"
+        local role="${field4}"
+        local model="${field5}"
+        local source_dir
+        source_dir="$(resolve_manifest_path "${field6}")"
+        local protected_flag="${field7}"
+        local default_flag="${field8}"
+
+        AGENT_NAMES["${agent_id}"]="${plain_name}"
+        AGENT_EMOJIS["${agent_id}"]="${emoji}"
+        AGENT_ROLES["${agent_id}"]="${role}"
+        AGENT_MANIFEST_MODELS["${agent_id}"]="${model}"
+        AGENT_SOURCE_DIRS["${agent_id}"]="${source_dir}"
+        AGENT_PROTECTED["${agent_id}"]="${protected_flag}"
+
+        if [[ "${default_flag}" == "true" ]]; then
+          DEFAULT_AGENT_ID="${agent_id}"
+          DEFAULT_AGENT_NAME="${plain_name}"
+          DEFAULT_AGENT_EMOJI="${emoji}"
+        else
+          SUB_AGENT_IDS+=("${agent_id}")
+        fi
+        ;;
+    esac
+  done <<< "${manifest_lines}"
+
+  if [[ -z "${PROJECT_DEFAULT_MODEL}" ]]; then
+    error "agents.yaml is missing project.default_model"
+    exit 1
+  fi
+  if [[ -z "${DEFAULT_AGENT_ID}" ]]; then
+    error "agents.yaml did not produce a default agent"
+    exit 1
+  fi
+  if [[ "${#SUB_AGENT_IDS[@]}" -eq 0 ]]; then
+    error "agents.yaml did not produce any sub-agents"
     exit 1
   fi
 
-  local manifest_sorted core_sorted
-  manifest_sorted="$(printf '%s\n' "${manifest_agents}" | sed '/^$/d' | sort)"
-  core_sorted="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1-3 | sort)"
-  if [[ "${manifest_sorted}" != "${core_sorted}" ]]; then
-    error "agents.yaml and setup.sh agent inventory are out of sync"
-    echo "Manifest:" >&2
-    printf '%s\n' "${manifest_sorted}" >&2
-    echo "setup.sh:" >&2
-    printf '%s\n' "${core_sorted}" >&2
-    exit 1
+  for agent_id in "${SUB_AGENT_IDS[@]}"; do
+    if [[ ! -d "${AGENT_SOURCE_DIRS[${agent_id}]}" ]]; then
+      error "Agent source directory not found for ${agent_id}: ${AGENT_SOURCE_DIRS[${agent_id}]}"
+      exit 1
+    fi
+  done
+
+  if [[ -z "${MODEL}" ]]; then
+    MODEL="${PROJECT_DEFAULT_MODEL}"
   fi
 }
 
@@ -290,7 +438,7 @@ preflight() {
     exit 1
   fi
 
-  validate_manifest
+  load_manifest
 
   mkdir -p "${OPENCLAW_HOME}"
   if [[ ! -f "${OPENCLAW_CONFIG}" ]]; then
@@ -304,10 +452,13 @@ preflight() {
 }
 
 create_agents() {
-  step "[2/8] Creating ${#CORE_AGENTS[@]} core sub-agents"
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+  step "[2/8] Creating $(sub_agent_count) core sub-agents"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
     local agent_model
     agent_model="$(get_model "${id}")"
     info "${emoji} ${name} → ${agent_model}"
@@ -317,8 +468,10 @@ create_agents() {
 
 set_identities() {
   step "[3/8] Setting agent identities"
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
     run "openclaw agents set-identity --agent '${id}' --name '${emoji} ${name}' 2>/dev/null || true"
   done
 }
@@ -327,10 +480,13 @@ deploy_source_files() {
   step "[4/8] Deploying bootstrap and source files"
   info "Agents will self-merge from BOOTSTRAP.md on first run"
 
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
-    local src_dir="${AGENTS_DIR}/${id}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
+    local src_dir="${AGENT_SOURCE_DIRS[${id}]}"
     local agent_model
     agent_model="$(get_model "${id}")"
 
@@ -364,9 +520,12 @@ deploy_openclaw_icons() {
     warn "openclaw-icons not found at ${icons_dir}; skipping"
     return
   fi
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
     mkdir -p "${workspace}/.icons"
     if [[ -d "${icons_dir}/svg" ]]; then
       cp -r "${icons_dir}/svg" "${workspace}/.icons/" 2>/dev/null || true
@@ -381,9 +540,12 @@ deploy_openclaw_icons() {
 append_workflows() {
   step "[6/8] Appending workflow references"
 
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
     local agents_md="${workspace}/AGENTS.md"
     local tmp_block tmp_agents
     tmp_block="$(mktemp)"
@@ -468,8 +630,9 @@ prompt_mode_and_channel() {
     read -r group_choice
 
     if [[ "${group_choice}" == "2" ]]; then
-      for entry in "${CORE_AGENTS[@]}"; do
-        IFS='|' read -r id name emoji role <<< "${entry}"
+      for id in "${SUB_AGENT_IDS[@]}"; do
+        local name="${AGENT_NAMES[${id}]}"
+        local emoji="${AGENT_EMOJIS[${id}]}"
         echo -en "  ${emoji} ${name} group/channel ID: "
         read -r gid
         if [[ -n "${gid}" ]]; then
@@ -514,8 +677,10 @@ configure_discord_mentions() {
   fi
 
   declare -A DISCORD_IDS
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
     echo -en "  ${emoji} ${name} Discord user ID (optional): "
     read -r discord_id
     if [[ -n "${discord_id}" ]]; then
@@ -526,8 +691,8 @@ configure_discord_mentions() {
   if [[ ${#DISCORD_IDS[@]} -gt 0 ]]; then
     local discord_agents_json='['
     local first=true
-    for entry in "${CORE_AGENTS[@]}"; do
-      IFS='|' read -r id name emoji role <<< "${entry}"
+    for id in "${SUB_AGENT_IDS[@]}"; do
+      local name="${AGENT_NAMES[${id}]}"
       local discord_id="${DISCORD_IDS[${id}]:-}"
       local mention_patterns
       [[ "${first}" == true ]] && first=false || discord_agents_json+=','
@@ -571,9 +736,12 @@ EOF
   fi
 
   step "Injecting Discord mention guard into agent prompts"
-  for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+  for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
     local soul_src="${workspace}/_soul_source.md"
     if [[ -f "${soul_src}" ]] && ! grep -q "Discord 通信极度重要警告" "${soul_src}" 2>/dev/null; then
       cat >> "${soul_src}" <<'EOF'
@@ -595,9 +763,12 @@ configure_config() {
   step "[7/8] Generating openclaw.json routing"
 
   local agents_json
-  agents_json="$(for entry in "${CORE_AGENTS[@]}"; do
-    IFS='|' read -r id name emoji role <<< "${entry}"
-    local workspace="${OPENCLAW_HOME}/workspace-${id}"
+  agents_json="$(for id in "${SUB_AGENT_IDS[@]}"; do
+    local name="${AGENT_NAMES[${id}]}"
+    local emoji="${AGENT_EMOJIS[${id}]}"
+    local role="${AGENT_ROLES[${id}]}"
+    local workspace
+    workspace="$(runtime_workspace "${id}")"
     local agent_model
     agent_model="$(get_model "${id}")"
     jq -n \
@@ -620,7 +791,7 @@ configure_config() {
   done | jq -s .)"
 
   local our_ids
-  our_ids="$(printf '%s\n' "${CORE_AGENTS[@]}" | cut -d'|' -f1 | jq -R . | jq -s .)"
+  our_ids="$(sub_agent_ids_json)"
   local tmp_file
   tmp_file="$(mktemp)"
   local tmp_agents
@@ -653,8 +824,7 @@ configure_config() {
     local bindings_json='[]'
     local accounts_json='{}'
 
-    for entry in "${CORE_AGENTS[@]}"; do
-      IFS='|' read -r id name emoji role <<< "${entry}"
+    for id in "${SUB_AGENT_IDS[@]}"; do
       bindings_json="$(jq --arg agent_id "${id}" '. + [{
         agentId: $agent_id,
         match: {
@@ -669,8 +839,8 @@ configure_config() {
         }
       }' <<< "${accounts_json}")"
     done
-    bindings_json="$(jq '. + [{
-      agentId: "main",
+    bindings_json="$(jq --arg default_agent_id "${DEFAULT_AGENT_ID}" '. + [{
+      agentId: $default_agent_id,
       match: {
         channel: "discord",
         accountId: "default"
@@ -686,6 +856,7 @@ configure_config() {
     jq --slurpfile new_agents "${tmp_agents}" \
        --argjson new_bindings "${bindings_json}" \
        --argjson our_ids "${our_ids}" \
+       --arg default_agent_id "${DEFAULT_AGENT_ID}" \
        --argjson new_accounts "${accounts_json}" '
       $new_agents[0] as $agents |
       .agents = (.agents // {})
@@ -695,7 +866,7 @@ configure_config() {
         )
       | .bindings = (
           [(.bindings // [])[]
-            | select((.agentId as $aid | $our_ids | index($aid) | not) and (.agentId != "main"))]
+            | select((.agentId as $aid | $our_ids | index($aid) | not) and (.agentId != $default_agent_id))]
           + $new_bindings
         )
       | .channels = (.channels // {})
@@ -714,8 +885,7 @@ configure_config() {
     local bindings_json='[]'
     local all_group_ids=()
 
-    for entry in "${CORE_AGENTS[@]}"; do
-      IFS='|' read -r id name emoji role <<< "${entry}"
+    for id in "${SUB_AGENT_IDS[@]}"; do
       local agent_group
       agent_group="$(get_group "${id}")"
       bindings_json="$(jq --arg agent_id "${id}" --arg channel "${CHANNEL}" --arg group_id "${agent_group}" '. + [{
@@ -796,13 +966,13 @@ summary() {
   echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
   echo ""
   echo -e "  ${BOLD}Mode:${NC}    $( [[ "${MODE}" == "local" ]] && echo "Local Workflow (agentToAgent)" || echo "Channel (${CHANNEL})" )"
-  echo -e "  ${BOLD}Agents:${NC}  ${#CORE_AGENTS[@]}"
+  echo -e "  ${BOLD}Agents:${NC}  $(sub_agent_count)"
   echo -e "  ${BOLD}Model:${NC}   ${MODEL}"
   if [[ "${MODE}" == "channel" ]]; then
     echo -e "  ${BOLD}@mention:${NC} ${REQUIRE_MENTION}"
     echo -e "  ${BOLD}Bindings:${NC}"
-    for entry in "${CORE_AGENTS[@]}"; do
-      IFS='|' read -r id name emoji role <<< "${entry}"
+    for id in "${SUB_AGENT_IDS[@]}"; do
+      local emoji="${AGENT_EMOJIS[${id}]}"
       echo -e "    ${emoji} ${id} → $(get_group "${id}")"
     done
   fi

@@ -2,7 +2,7 @@
 
 Two layers:
 
-1. **OpenClaw layer** — `./setup.sh` provisions the agent fleet.
+1. **OpenClaw layer** — `./setup.sh` reads fleet inventory/default model from `agents.yaml` and provisions the runtime agent fleet.
 2. **Discord layer** — OpenClaw native multi-bot routing. Each agent = one Discord bot account.
 
 For local-only collaboration, layer 1 is enough.
@@ -54,6 +54,9 @@ chmod +x setup.sh scripts/discord-thread-dispatch.sh
 ```
 
 ### Step 2 — Mode
+
+`agents.yaml` is the source of truth for setup inventory and per-agent default models. Runtime workspaces are still created under `~/.openclaw/workspace-<id>`, so the manifest `workspace` field continues to refer to the repo-side persona source directory.
+
 
 **Local:**
 ```bash

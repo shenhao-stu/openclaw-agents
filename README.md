@@ -29,8 +29,8 @@
 
 `openclaw-agents` provisions an 8-agent OpenClaw fleet with Discord multi-bot routing:
 
-- `setup.sh` creates agents, workspaces, icons, routing, and Discord mention rules.
-- In Discord mode, `setup.sh` now generates native `accountId` → `agentId` bindings plus `channels.discord.accounts` skeleton entries for each bot account.
+- `setup.sh` now reads fleet inventory and default model from `agents.yaml`, then provisions runtime workspaces under `~/.openclaw/workspace-<id>`.
+- In Discord mode, `setup.sh` generates native `accountId` → `agentId` bindings plus `channels.discord.accounts` skeleton entries for each bot account.
 - `SKILL.md` is the AI-agent entrypoint (follows [AgentSkills](https://skills.sh/) spec).
 
 ---
@@ -78,7 +78,7 @@ AI agents read `SKILL.md` first.
 `./setup.sh`:
 
 1. Verifies `openclaw` + `jq`
-2. Creates 8 agents with independent workspaces under `~/.openclaw/workspace-<id>`
+2. Reads sub-agent inventory from `agents.yaml` and creates runtime workspaces under `~/.openclaw/workspace-<id>`
 3. Deploys bootstrap, source files, openclaw-icons
 4. Generates `~/.openclaw/openclaw.json` with agent list, bindings, and Discord config
 5. If Discord: injects mention patterns and mention guard into agent prompts

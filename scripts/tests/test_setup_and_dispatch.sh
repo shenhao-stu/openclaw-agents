@@ -45,6 +45,8 @@ discord_output="$(bash "${SETUP_SCRIPT}" --mode channel --channel discord --grou
 assert_contains "${discord_output}" '"accountId": "planner"'
 assert_contains "${discord_output}" '"accountId": "default"'
 assert_contains "${discord_output}" '"accounts": {'
+assert_contains "${discord_output}" '"model": "ohmyapi/gpt-5.4"'
+assert_contains "${discord_output}" '"name": "🧠 Planner"'
 assert_not_contains "${discord_output}" '"peer": { "kind": "group", "id": "guild-123" }'
 
 printf 'Running setup.sh non-Discord dry-run assertions...\n'

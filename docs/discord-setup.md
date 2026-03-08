@@ -130,7 +130,7 @@ Each account routes to its agent:
 }
 ```
 
-`setup.sh` now generates the `accountId` bindings automatically and initializes empty `channels.discord.accounts.<agent>` entries plus `channels.discord.accounts.default`. After setup, you still need to fill in real bot tokens and, if desired, richer guild/channel allowlists.
+`setup.sh` now generates the `accountId` bindings automatically from the manifest-backed sub-agent inventory, keeps the default/main agent mapped to `accountId: "default"`, and initializes empty `channels.discord.accounts.<agent>` entries plus `channels.discord.accounts.default`. After setup, you still need to fill in real bot tokens and, if desired, richer guild/channel allowlists.
 
 ---
 
