@@ -3,7 +3,7 @@
   <br/>
   <img src="https://img.shields.io/badge/version-4.2.0-brightgreen?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/agents-8-orange?style=flat-square" alt="Agents">
+  <img src="https://img.shields.io/badge/agents-manifest--driven-orange?style=flat-square" alt="Agents">
   <img src="https://img.shields.io/badge/discord-native%20multi--bot-purple?style=flat-square" alt="Discord">
 </p>
 
@@ -12,7 +12,7 @@
 <p align="center">
   <strong>Multi-agent fleet provisioning + Discord thread collaboration SOP</strong>
   <br/>
-  <em>One setup.sh → 8 agents, each with its own Discord bot, workspace, and identity.</em>
+  <em>One setup.sh → manifest-defined agents, each with its own Discord bot, workspace, and identity.</em>
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@
 
 ## What This Is
 
-`openclaw-agents` provisions an 8-agent OpenClaw fleet with Discord multi-bot routing:
+`openclaw-agents` provisions a manifest-defined OpenClaw fleet with Discord multi-bot routing:
 
 - `setup.sh` now reads fleet inventory and default model from `agents.yaml`, then provisions runtime workspaces under `~/.openclaw/workspace-<id>`.
 - In Discord mode, `setup.sh` generates native `accountId` → `agentId` bindings plus `channels.discord.accounts` skeleton entries for each bot account.
@@ -197,6 +197,12 @@ openclaw-agents/
 - [Discord Setup](docs/discord-setup.md)
 - [Thread SOP](docs/discord-thread-sop.md)
 - [OpenClaw Docs](https://docs.openclaw.ai/)
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=shenhao-stu/openclaw-agents&type=Date)](https://www.star-history.com/#shenhao-stu/openclaw-agents&Date)
 
 ---
 
