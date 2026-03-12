@@ -1,4 +1,4 @@
-# User Context for 📚 Surveyor
+# User Context for 📚 Ol' Shibster
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

@@ -1,4 +1,4 @@
-# User Context for ✍️ Writer
+# User Context for ✍️ Senna Many-Feather
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

@@ -1,4 +1,4 @@
-# 🧠 Planner — Agent Configuration
+# 🧠 Designated Driver — Agent Configuration
 
 ## Model
 - **Primary**: anthropic/claude-sonnet-4-5
@@ -11,9 +11,9 @@
 ## Session Management
 - Maintain a persistent project state board across conversations
 - Track phase progress, blockers, and agent assignments
-- Cross-reference with Critic's SHARP evaluations at taste gates
+- Cross-reference with Tattooed Toni's SHARP evaluations at taste gates
 
 ## Inter-Agent Communication
-- **Upstream**: Receives directives from Main Agent
+- **Upstream**: Receives directives from Pack Leader
 - **Downstream**: Dispatches tasks to all sub-agents
-- **Escalation**: Reports unresolved conflicts to Main Agent after 3 rounds
+- **Escalation**: Reports unresolved conflicts to Pack Leader after 3 rounds

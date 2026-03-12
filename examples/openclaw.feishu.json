@@ -3,136 +3,136 @@
         "list": [
             {
                 "id": "planner",
-                "name": "🧠 Planner",
+                "name": "🧠 Designated Driver",
                 "workspace": "~/.openclaw/agents/planner",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🧠 Planner"
+                    "name": "🧠 Designated Driver"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@planner",
                         "planner",
-                        "@Planner"
+                        "@Designated Driver"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "ideator",
-                "name": "💡 Ideator",
+                "name": "💡 Cloud Gazers",
                 "workspace": "~/.openclaw/agents/ideator",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "💡 Ideator"
+                    "name": "💡 Cloud Gazers"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@ideator",
                         "ideator",
-                        "@Ideator"
+                        "@Cloud Gazers"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "critic",
-                "name": "🎯 Critic",
+                "name": "🎯 Tattooed Toni",
                 "workspace": "~/.openclaw/agents/critic",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🎯 Critic"
+                    "name": "🎯 Tattooed Toni"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@critic",
                         "critic",
-                        "@Critic"
+                        "@Tattooed Toni"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "surveyor",
-                "name": "📚 Surveyor",
+                "name": "📚 Ol' Shibster",
                 "workspace": "~/.openclaw/agents/surveyor",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "📚 Surveyor"
+                    "name": "📚 Ol' Shibster"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@surveyor",
                         "surveyor",
-                        "@Surveyor"
+                        "@Ol' Shibster"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "coder",
-                "name": "💻 Coder",
+                "name": "💻 Dev Wooflin",
                 "workspace": "~/.openclaw/agents/coder",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "💻 Coder"
+                    "name": "💻 Dev Wooflin"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@coder",
                         "coder",
-                        "@Coder"
+                        "@Dev Wooflin"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "writer",
-                "name": "✍️ Writer",
+                "name": "✍️ Senna Many-Feather",
                 "workspace": "~/.openclaw/agents/writer",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "✍️ Writer"
+                    "name": "✍️ Senna Many-Feather"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@writer",
                         "writer",
-                        "@Writer"
+                        "@Senna Many-Feather"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "reviewer",
-                "name": "🔍 Reviewer",
+                "name": "🔍 The Janky Ref",
                 "workspace": "~/.openclaw/agents/reviewer",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🔍 Reviewer"
+                    "name": "🔍 The Janky Ref"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@reviewer",
                         "reviewer",
-                        "@Reviewer"
+                        "@The Janky Ref"
                     ],
                     "historyLimit": 50
                 }
             },
             {
                 "id": "scout",
-                "name": "📰 Scout",
+                "name": "📰 The Librarian",
                 "workspace": "~/.openclaw/agents/scout",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "📰 Scout"
+                    "name": "📰 The Librarian"
                 },
                 "groupChat": {
                     "mentionPatterns": [
                         "@scout",
                         "scout",
-                        "@Scout"
+                        "@The Librarian"
                     ],
                     "historyLimit": 50
                 }

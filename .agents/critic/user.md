@@ -1,4 +1,4 @@
-# User Context for 🎯 Critic
+# User Context for 🎯 Tattooed Toni
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

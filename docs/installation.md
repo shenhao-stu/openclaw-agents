@@ -183,26 +183,26 @@ Each agent has a distinct emoji identity visible in the chat:
 
 | Agent | Identity in Chat |
 |-------|-----------------|
-| Main | 🐾 OpenClaw |
-| Planner | 🧠 Planner |
-| Ideator | 💡 Ideator |
-| Critic | 🎯 Critic |
-| Surveyor | 📚 Surveyor |
-| Coder | 💻 Coder |
-| Writer | ✍️ Writer |
-| Reviewer | 🔍 Reviewer |
-| Scout | 📰 Scout |
+| Main | 🐾 Pack Leader |
+| Planner | 🧠 Designated Driver |
+| Ideator | 💡 Cloud Gazers |
+| Critic | 🎯 Tattooed Toni |
+| Surveyor | 📚 Ol' Shibster |
+| Coder | 💻 Dev Wooflin |
+| Writer | ✍️ Senna Many-Feather |
+| Reviewer | 🔍 The Janky Ref |
+| Scout | 📰 The Librarian |
 
 ### Step 7: Understanding the Agent System
 
 The 9 agents form a collaborative research team:
 
-- **🧠 Planner** orchestrates all tasks and manages the project timeline
-- **💡 Ideator** and **🎯 Critic** work in adversarial collaboration — Ideator generates ideas, Critic evaluates them with the SHARP framework (must score ≥ 18 to proceed)
-- **📚 Surveyor** handles literature review and research gap identification
-- **💻 Coder** implements algorithms and runs experiments
-- **✍️ Writer** and **🔍 Reviewer** iterate on paper writing — Reviewer has veto power
-- **📰 Scout** monitors daily paper releases and trends
+- **🧠 Designated Driver** orchestrates all tasks and manages the project timeline
+- **💡 Cloud Gazers** and **🎯 Tattooed Toni** work in adversarial collaboration — Cloud Gazers generates ideas, Tattooed Toni evaluates them with the SHARP framework (must score ≥ 18 to proceed)
+- **📚 Ol' Shibster** handles literature review and research gap identification
+- **💻 Dev Wooflin** implements algorithms and runs experiments
+- **✍️ Senna Many-Feather** and **🔍 The Janky Ref** iterate on paper writing — The Janky Ref has veto power
+- **📰 The Librarian** monitors daily paper releases and trends
 
 The workflow system connects these agents through four slash commands:
 - `/paper-pipeline` — Full paper production (9 phases with taste gates)

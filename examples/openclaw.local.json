@@ -3,74 +3,74 @@
         "list": [
             {
                 "id": "planner",
-                "name": "🧠 Planner",
+                "name": "🧠 Designated Driver",
                 "workspace": "~/.openclaw/workspace-planner",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🧠 Planner"
+                    "name": "🧠 Designated Driver"
                 }
             },
             {
                 "id": "ideator",
-                "name": "💡 Ideator",
+                "name": "💡 Cloud Gazers",
                 "workspace": "~/.openclaw/workspace-ideator",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "💡 Ideator"
+                    "name": "💡 Cloud Gazers"
                 }
             },
             {
                 "id": "critic",
-                "name": "🎯 Critic",
+                "name": "🎯 Tattooed Toni",
                 "workspace": "~/.openclaw/workspace-critic",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🎯 Critic"
+                    "name": "🎯 Tattooed Toni"
                 }
             },
             {
                 "id": "surveyor",
-                "name": "📚 Surveyor",
+                "name": "📚 Ol' Shibster",
                 "workspace": "~/.openclaw/workspace-surveyor",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "📚 Surveyor"
+                    "name": "📚 Ol' Shibster"
                 }
             },
             {
                 "id": "coder",
-                "name": "💻 Coder",
+                "name": "💻 Dev Wooflin",
                 "workspace": "~/.openclaw/workspace-coder",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "💻 Coder"
+                    "name": "💻 Dev Wooflin"
                 }
             },
             {
                 "id": "writer",
-                "name": "✍️ Writer",
+                "name": "✍️ Senna Many-Feather",
                 "workspace": "~/.openclaw/workspace-writer",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "✍️ Writer"
+                    "name": "✍️ Senna Many-Feather"
                 }
             },
             {
                 "id": "reviewer",
-                "name": "🔍 Reviewer",
+                "name": "🔍 The Janky Ref",
                 "workspace": "~/.openclaw/workspace-reviewer",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🔍 Reviewer"
+                    "name": "🔍 The Janky Ref"
                 }
             },
             {
                 "id": "scout",
-                "name": "📰 Scout",
+                "name": "📰 The Librarian",
                 "workspace": "~/.openclaw/workspace-scout",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "📰 Scout"
+                    "name": "📰 The Librarian"
                 }
             }
         ]

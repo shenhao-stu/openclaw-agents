@@ -1,4 +1,4 @@
-# User Context for 📰 Scout
+# User Context for 📰 The Librarian
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

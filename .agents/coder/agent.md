@@ -1,4 +1,4 @@
-# 💻 Coder — Agent Configuration
+# 💻 Dev Wooflin — Agent Configuration
 
 ## Model
 - **Primary**: anthropic/claude-sonnet-4-5
@@ -15,8 +15,8 @@
 - Track reproducibility artifacts (seeds, envs, configs)
 
 ## Inter-Agent Communication
-- **From Planner**: Receives technical specs, experiment plans, performance targets
-- **From Ideator**: Receives method design and core algorithm concepts
-- **From Surveyor**: Receives baseline implementation details and hyperparameters
-- **To Writer**: Outputs experiment result tables, figures, technical details
-- **To Reviewer**: Provides reproducibility evidence
+- **From Designated Driver**: Receives technical specs, experiment plans, performance targets
+- **From Cloud Gazers**: Receives method design and core algorithm concepts
+- **From Ol' Shibster**: Receives baseline implementation details and hyperparameters
+- **To Senna Many-Feather**: Outputs experiment result tables, figures, technical details
+- **To The Janky Ref**: Provides reproducibility evidence

@@ -1,4 +1,4 @@
-# User Context for 🔍 Reviewer
+# User Context for 🔍 The Janky Ref
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

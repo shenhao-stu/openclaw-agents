@@ -11,28 +11,28 @@ description: 快速 Idea 头脑风暴会议流程
 ## 触发条件
 - 用户想要新的研究 Idea
 - 用户请求：`/brainstorm`
-- Planner 判断需要新的研究方向
+- Designated Driver 判断需要新的研究方向
 
 ---
 
 ## Step 1: 上下文准备（5 分钟）
 
-**Planner** 收集背景信息：
+**Designated Driver** 收集背景信息：
 1. 用户的研究方向约束
 2. 目标会议和 DDL
 3. 可用的计算资源
 4. 已有的实验基建（可复用的代码/数据）
 5. 用户最近关注的论文或灵感
 
-**Scout** 快速提供：
+**The Librarian** 快速提供：
 1. 最近一周的相关热门论文
 2. 当前研究趋势关键词
 
 ---
 
-## Step 2: 自由发散（Ideator 主导）
+## Step 2: 自由发散（Cloud Gazers 主导）
 
-**Ideator** 从多个维度生成 Idea：
+**Cloud Gazers** 从多个维度生成 Idea：
 
 ### 维度 1：问题驱动
 - 现有方法有哪些明显的 Limitation？
@@ -55,16 +55,16 @@ description: 快速 Idea 头脑风暴会议流程
 
 ---
 
-## Step 3: 新颖性验证（Surveyor 配合）
+## Step 3: 新颖性验证（Ol' Shibster 配合）
 
-**Surveyor** 快速检查每个 Idea：
+**Ol' Shibster** 快速检查每个 Idea：
 - 是否有类似的已发表工作？
 - 与最接近的工作有什么区别？
 - 新颖性评级：🟢 新颖 / 🟡 有差异 / 🔴 太相似
 
 ---
 
-## Step 4: ACE 评估（Ideator + Planner）
+## Step 4: ACE 评估（Cloud Gazers + Designated Driver）
 
 对通过新颖性验证的 Idea 进行评分：
 
@@ -87,9 +87,9 @@ description: 快速 Idea 头脑风暴会议流程
 
 ---
 
-## 🎯 Step 5.5: Critic 品鉴（Critic 裁决）
+## 🎯 Step 5.5: Tattooed Toni 品鉴（Tattooed Toni 裁决）
 
-**Critic** 对选定的 Idea 进行 SHARP 品鉴：
+**Tattooed Toni** 对选定的 Idea 进行 SHARP 品鉴：
 1. 执行"一句话 Insight Test"——核心 insight 是否足够锋利？
 2. 执行"酒吧测试"——30 秒能让同行说"有意思"吗？
 3. 模拟最刁钻审稿人的压力测试
@@ -97,13 +97,13 @@ description: 快速 Idea 头脑风暴会议流程
 5. 给出 SHARP 评分和 Taste 判定
 
 **如果通过**（SHARP ≥ 18）→ 进入 Step 6
-**如果未通过** → 返回 Step 5 与 Ideator 迭代打磨，或返回 Step 2 重新发散
+**如果未通过** → 返回 Step 5 与 Cloud Gazers 迭代打磨，或返回 Step 2 重新发散
 
 ---
 
 ## Step 6: Idea Card 完善
 
-**Ideator** 输出完整的 Research Idea Card（经 Critic 品鉴通过）：
+**Cloud Gazers** 输出完整的 Research Idea Card（经 Tattooed Toni 品鉴通过）：
 - 标题
 - 一句话摘要
 - Motivation
@@ -113,14 +113,14 @@ description: 快速 Idea 头脑风暴会议流程
 - 风险与 Plan B
 - 🎯 SHARP 品鉴评分
 
-交付给 **Planner** 进入 Paper Pipeline Phase 3。
+交付给 **Designated Driver** 进入 Paper Pipeline Phase 3。
 
 ---
 
 ## 注意事项
 - 头脑风暴阶段鼓励大胆假设，不要过早否定
 - 新颖性验证应快速但不苛刻（可以后续深入调研）
-- **Critic 品鉴是硬关卡**：未通过 SHARP ≥ 18 的 Idea 不得进入正式流程
+- **Tattooed Toni 品鉴是硬关卡**：未通过 SHARP ≥ 18 的 Idea 不得进入正式流程
 - 最终选择需要平衡创新性与可行性
 - 用户的直觉和兴趣是重要参考
-- Critic 的苛刻是为了确保团队不浪费时间在"能发但不够好"的 Idea 上
+- Tattooed Toni 的苛刻是为了确保团队不浪费时间在"能发但不够好"的 Idea 上

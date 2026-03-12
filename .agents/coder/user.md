@@ -1,4 +1,4 @@
-# User Context for 💻 Coder
+# User Context for 💻 Dev Wooflin
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

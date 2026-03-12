@@ -47,7 +47,7 @@ step()    { echo -e "\n${MAGENTA}▸${NC} ${BOLD}$*${NC}"; }
 banner()  {
   echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║${NC}  ${BOLD}🐾 OpenClaw Multi-Agent Setup${NC}  v2.2.0          ${CYAN}║${NC}"
+  echo -e "${CYAN}║${NC}  ${BOLD}🐾 Pack Leader Multi-Agent Setup${NC}  v2.2.0        ${CYAN}║${NC}"
   echo -e "${CYAN}║${NC}  ${DIM}Self-Merge · Multi-Group · Local/Channel Modes${NC}  ${CYAN}║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════════╝${NC}"
   echo ""
@@ -60,14 +60,14 @@ OPENCLAW_CONFIG="${OPENCLAW_HOME}/openclaw.json"
 DEFAULT_MODEL="zai/glm-5"
 
 CORE_AGENTS=(
-  "planner|Planner|🧠|统筹规划师"
-  "ideator|Ideator|💡|创意大师"
-  "critic|Critic|🎯|品鉴师"
-  "surveyor|Surveyor|📚|文献专家"
-  "coder|Coder|💻|代码工程师"
-  "writer|Writer|✍️|论文写手"
-  "reviewer|Reviewer|🔍|内部审稿人"
-  "scout|Scout|📰|学术情报员"
+  "planner|Designated Driver|🧠|统筹规划师"
+  "ideator|Cloud Gazers|💡|创意大师"
+  "critic|Tattooed Toni|🎯|品鉴师"
+  "surveyor|Ol' Shibster|📚|文献专家"
+  "coder|Dev Wooflin|💻|代码工程师"
+  "writer|Senna Many-Feather|✍️|论文写手"
+  "reviewer|The Janky Ref|🔍|内部审稿人"
+  "scout|The Librarian|📰|学术情报员"
 )
 
 MODE=""

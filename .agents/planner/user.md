@@ -1,4 +1,4 @@
-# User Context for 🧠 Planner
+# User Context for 🧠 Designated Driver
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

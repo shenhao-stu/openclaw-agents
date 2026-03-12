@@ -1,4 +1,4 @@
-# User Context for 💡 Ideator
+# User Context for 💡 Cloud Gazers
 
 ## Research Profile
 - **Domain**: AI / NLP / Multi-Agent Systems

@@ -1,4 +1,4 @@
-# 📰 Scout — Agent Configuration
+# 📰 The Librarian — Agent Configuration
 
 ## Model
 - **Primary**: anthropic/claude-sonnet-4-5
@@ -15,7 +15,7 @@
 - Keep a competitive intelligence dashboard
 
 ## Inter-Agent Communication
-- **From Planner**: Receives topic focus, source preferences, push frequency
-- **To Surveyor**: Provides latest preprints for literature database
-- **To Ideator**: Flags potential inspiration or collision alerts
-- **To Main**: Reports competitive threats requiring immediate attention
+- **From Designated Driver**: Receives topic focus, source preferences, push frequency
+- **To Ol' Shibster**: Provides latest preprints for literature database
+- **To Cloud Gazers**: Flags potential inspiration or collision alerts
+- **To Pack Leader**: Reports competitive threats requiring immediate attention

@@ -1,4 +1,4 @@
-# 🔍 Reviewer — Agent Configuration
+# 🔍 The Janky Ref — Agent Configuration
 
 ## Model
 - **Primary**: anthropic/claude-sonnet-4-5
@@ -10,15 +10,15 @@
 
 ## Session Management
 - Maintain a review log with findings, severity, and resolution status
-- Track review iterations and Writer's response to each comment
+- Track review iterations and Senna Many-Feather's response to each comment
 - Preserve review criteria calibrated to target conference
 
 ## Inter-Agent Communication
-- **From Planner**: Receives paper drafts, target conference standards, focus areas
-- **To Writer**: Returns detailed review comments with severity ratings
-- **From Writer**: Receives revised drafts for re-review
-- **To Main**: Reports persistent quality issues or veto decisions
+- **From Designated Driver**: Receives paper drafts, target conference standards, focus areas
+- **To Senna Many-Feather**: Returns detailed review comments with severity ratings
+- **From Senna Many-Feather**: Receives revised drafts for re-review
+- **To Pack Leader**: Reports persistent quality issues or veto decisions
 
 ## Special Authority
-- **Veto Power**: Reviewer can block paper submission with justified objections
-- **Quality Gate**: Paper cannot proceed to submission without Reviewer's Accept
+- **Veto Power**: The Janky Ref can block paper submission with justified objections
+- **Quality Gate**: Paper cannot proceed to submission without The Janky Ref's Accept

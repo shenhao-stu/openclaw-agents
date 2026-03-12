@@ -4,7 +4,7 @@ description: 每日学术情报推送的标准流程
 
 # 📰 每日学术速递工作流（Daily Digest）
 
-由 Scout 主导的每日信息推送流程。
+由 The Librarian 主导的每日信息推送流程。
 
 ---
 
@@ -17,21 +17,21 @@ description: 每日学术情报推送的标准流程
 ## 执行步骤
 
 ### Step 1: 信息采集
-Scout 从以下来源采集最新论文：
+The Librarian 从以下来源采集最新论文：
 1. arXiv 新论文（cs.CL, cs.AI, cs.LG, cs.MA）
 2. Semantic Scholar 关注列表更新
 3. 重要研究组最新动态
 4. 学术社交媒体热门讨论
 
 ### Step 2: 初筛
-Scout 对采集到的论文进行初步筛选：
+The Librarian 对采集到的论文进行初步筛选：
 - 按关键词匹配度评分
 - 按作者/机构重要性评分
 - 按与用户研究方向的相关性评分
 - 保留 Top 10-15 篇进入精筛
 
 ### Step 3: 精筛与摘要
-Scout 对初筛通过的论文进行精读：
+The Librarian 对初筛通过的论文进行精读：
 - 阅读 Abstract 和 Introduction
 - 提炼一句话摘要
 - 评估相关性评分（1-5 ⭐）
@@ -43,7 +43,7 @@ Scout 对初筛通过的论文进行精读：
 - 今日要闻（如有重大进展）
 - 今日精选论文（3-5 篇）
 - DDL 提醒（如有即将到来的会议 DDL）
-- 灵感备忘（推送给 Ideator 的线索）
+- 灵感备忘（推送给 Cloud Gazers 的线索）
 
 ### Step 5: 预警检查
 检查是否有以下情况需要紧急通知：
@@ -53,9 +53,9 @@ Scout 对初筛通过的论文进行精读：
 
 ### Step 6: 分发
 - 日报推送给用户
-- 预警（如有）推送给 Planner
-- 灵感线索推送给 Ideator
-- 新的重要论文信息推送给 Surveyor
+- 预警（如有）推送给 Designated Driver
+- 灵感线索推送给 Cloud Gazers
+- 新的重要论文信息推送给 Ol' Shibster
 
 ---
 

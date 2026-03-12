@@ -1,5 +1,5 @@
 # ============================================================
-# OpenClaw Agents �?Multi-Agent Configuration Manifest
+# OpenClaw Agents �?Multi-Agent Configuration Manifest
 # ============================================================
 # This file defines all agents, their properties, and routing.
 # Used by setup.sh to auto-provision the entire agent fleet.
@@ -25,7 +25,7 @@ project:
 agents:
   # ── Main Agent (root-level soul.md) ──
   - id: "main"
-    name: "🐾 OpenClaw"
+    name: "🐾 Pack Leader"
     emoji: "🐾"
     role: "System orchestrator, audit, and final arbiter"
     model: "zai/glm-5"
@@ -35,7 +35,7 @@ agents:
 
   # ── Core Sub-Agents ──
   - id: "planner"
-    name: "🧠 Planner"
+    name: "🧠 Designated Driver"
     emoji: "🧠"
     role: "Task decomposition, progress tracking, cross-agent coordination"
     model: "zai/glm-5"
@@ -43,7 +43,7 @@ agents:
     workspace: ".agents/planner"
 
   - id: "ideator"
-    name: "💡 Ideator"
+    name: "💡 Cloud Gazers"
     emoji: "💡"
     role: "Idea generation, novelty assessment, contribution refinement"
     model: "zai/glm-5"
@@ -51,7 +51,7 @@ agents:
     workspace: ".agents/ideator"
 
   - id: "critic"
-    name: "🎯 Critic"
+    name: "🎯 Tattooed Toni"
     emoji: "🎯"
     role: "SHARP taste evaluation, soul questions, anti-pattern detection"
     model: "zai/glm-5"
@@ -59,7 +59,7 @@ agents:
     workspace: ".agents/critic"
 
   - id: "surveyor"
-    name: "📚 Surveyor"
+    name: "📚 Ol' Shibster"
     emoji: "📚"
     role: "Literature search, paper analysis, research gap identification"
     model: "zai/glm-5"
@@ -67,7 +67,7 @@ agents:
     workspace: ".agents/surveyor"
 
   - id: "coder"
-    name: "💻 Coder"
+    name: "💻 Dev Wooflin"
     emoji: "💻"
     role: "Algorithm implementation, experiment execution, code optimization"
     model: "zai/glm-5"
@@ -75,7 +75,7 @@ agents:
     workspace: ".agents/coder"
 
   - id: "writer"
-    name: "✍️ Writer"
+    name: "✍️ Senna Many-Feather"
     emoji: "✍️"
     role: "Paper writing, LaTeX formatting, academic expression"
     model: "zai/glm-5"
@@ -83,7 +83,7 @@ agents:
     workspace: ".agents/writer"
 
   - id: "reviewer"
-    name: "🔍 Reviewer"
+    name: "🔍 The Janky Ref"
     emoji: "🔍"
     role: "Internal peer review, weakness diagnosis, rebuttal strategy"
     model: "zai/glm-5"
@@ -91,7 +91,7 @@ agents:
     workspace: ".agents/reviewer"
 
   - id: "scout"
-    name: "📰 Scout"
+    name: "📰 The Librarian"
     emoji: "📰"
     role: "Daily paper digest, trend analysis, competitive intelligence"
     model: "zai/glm-5"

@@ -39,8 +39,8 @@
   - **Channel Mode**: auto-routes agents to Feishu, WhatsApp, Telegram, Discord (supports individual groups)
   - **Local Workflow Mode**: no channel required, agents communicate directly via `agentToAgent` tool
 - 📋 **4 workflow templates** — Paper Pipeline, Daily Digest, Brainstorm, Rebuttal
-- ⚔️ **Adversarial collaboration** — Ideator↔Critic and Writer↔Reviewer creative tension
-- 🎯 **SHARP taste gates** — quality checkpoints enforced by the Critic agent
+- ⚔️ **Adversarial collaboration** — Cloud Gazers↔Tattooed Toni and Senna Many-Feather↔The Janky Ref creative tension
+- 🎯 **SHARP taste gates** — quality checkpoints enforced by the Tattooed Toni agent
 - 🛡️ **Safe merge** — appends agents to existing config, never overwrites your main agent
 - 🎛️ **Flexible model** — unified model or per-agent customization via `--model-map`
 - 🧩 **Extensible** — add custom agents via `agents.yaml`
@@ -182,36 +182,35 @@ Then mention any agent in your chat group to test. Each agent will respond with 
                          └──────┬───────┘
                                 │
                     ┌───────────▼───────────┐
-                    │  🐾 OpenClaw Main     │
+                    │  🐾 Pack Leader Main  │
                     │  (Audit · Manage · Arbitrate)
                     └───────────┬───────────┘
                                 │
-                         ┌──────▼───────┐
-                         │  🧠 Planner  │ ◄── Orchestration Hub
-                         └──────┬───────┘
+                         ┌──────▼───────────────┐
+                         │  🧠 Designated Driver │ ◄── Orchestration Hub
+                         └──────┬───────────────┘
                                 │
        ┌────────────────────────┼────────────────────────┐
        │                        │                        │
- ┌─────▼─────┐           ┌─────▼─────┐           ┌─────▼─────┐
- │ 💡Ideator │◄── ⚔️ ──►│ 🎯 Critic │           │ 📰 Scout  │
- │  Creative  │           │   Taste    │           │   Intel    │
- └─────┬─────┘           └─────┬─────┘           └───────────┘
+ ┌─────▼────────┐        ┌─────▼───────────┐     ┌─────▼───────────┐
+ │ 💡Cloud      │◄─ ⚔️ ─►│ 🎯 Tattooed    │     │ 📰 The          │
+ │   Gazers     │        │     Toni         │     │    Librarian     │
+ └─────┬────────┘        └─────┬───────────┘     └─────────────────┘
        │                       │
- ┌─────▼─────┐           ┌─────▼─────┐
- │ 📚Surveyor│           │ 💻 Coder  │
- │  Research  │           │ Engineer   │
- └─────┬─────┘           └─────┬─────┘
+ ┌─────▼────────┐        ┌─────▼───────────┐
+ │ 📚Ol'        │        │ 💻 Dev          │
+ │  Shibster    │        │    Wooflin       │
+ └─────┬────────┘        └─────┬───────────┘
        │                       │
        └───────────┬───────────┘
-             ┌─────▼─────┐
-             │ ✍️ Writer │
-             │  Author    │
-             └─────┬─────┘
+             ┌─────▼───────────────┐
+             │ ✍️ Senna            │
+             │    Many-Feather     │
+             └─────┬───────────────┘
                    │
-             ┌─────▼─────┐
-             │ 🔍Reviewer│ ◄── Quality Gate
-             │  Reviewer  │
-             └───────────┘
+             ┌─────▼───────────────┐
+             │ 🔍The Janky Ref     │ ◄── Quality Gate
+             └─────────────────────┘
 ```
 
 ### Adversarial Collaboration
@@ -220,11 +219,11 @@ The system is built on **productive tension** between agents:
 
 | Axis | Agents | Dynamic |
 |------|--------|---------|
-| **Creativity vs. Taste** | 💡 Ideator ↔ 🎯 Critic | Forge top-tier ideas through rigorous debate |
-| **Writing vs. Review** | ✍️ Writer ↔ 🔍 Reviewer | Polish papers through iterative feedback |
+| **Creativity vs. Taste** | 💡 Cloud Gazers ↔ 🎯 Tattooed Toni | Forge top-tier ideas through rigorous debate |
+| **Writing vs. Review** | ✍️ Senna Many-Feather ↔ 🔍 The Janky Ref | Polish papers through iterative feedback |
 
-- **🎯 Critic** holds ultimate **taste veto** — no idea passes Phase 2.5 without SHARP ≥ 18
-- **🔍 Reviewer** holds ultimate **quality veto** — paper cannot submit without Reviewer's Accept
+- **🎯 Tattooed Toni** holds ultimate **taste veto** — no idea passes Phase 2.5 without SHARP ≥ 18
+- **🔍 The Janky Ref** holds ultimate **quality veto** — paper cannot submit without The Janky Ref's Accept
 
 ---
 
@@ -234,15 +233,15 @@ The system is built on **productive tension** between agents:
 
 | # | Agent | ID | Identity | Role |
 |---|-------|----|----------|------|
-| 0 | **Main** | `main` | 🐾 OpenClaw | System orchestrator, audit, final arbiter |
-| 1 | **Planner** | `planner` | 🧠 Planner | Task decomposition, progress tracking, coordination |
-| 2 | **Ideator** | `ideator` | 💡 Ideator | Idea generation, novelty assessment, contribution framing |
-| 3 | **Critic** | `critic` | 🎯 Critic | SHARP taste evaluation, anti-pattern detection |
-| 4 | **Surveyor** | `surveyor` | 📚 Surveyor | Literature search, research gap identification |
-| 5 | **Coder** | `coder` | 💻 Coder | Algorithm implementation, experiment execution |
-| 6 | **Writer** | `writer` | ✍️ Writer | Paper writing, LaTeX formatting |
-| 7 | **Reviewer** | `reviewer` | 🔍 Reviewer | Internal peer review, rebuttal strategy |
-| 8 | **Scout** | `scout` | 📰 Scout | Daily paper digest, trend monitoring |
+| 0 | **Main** | `main` | 🐾 Pack Leader | System orchestrator, audit, final arbiter |
+| 1 | **Designated Driver** | `planner` | 🧠 Designated Driver | Task decomposition, progress tracking, coordination |
+| 2 | **Cloud Gazers** | `ideator` | 💡 Cloud Gazers | Idea generation, novelty assessment, contribution framing |
+| 3 | **Tattooed Toni** | `critic` | 🎯 Tattooed Toni | SHARP taste evaluation, anti-pattern detection |
+| 4 | **Ol' Shibster** | `surveyor` | 📚 Ol' Shibster | Literature search, research gap identification |
+| 5 | **Dev Wooflin** | `coder` | 💻 Dev Wooflin | Algorithm implementation, experiment execution |
+| 6 | **Senna Many-Feather** | `writer` | ✍️ Senna Many-Feather | Paper writing, LaTeX formatting |
+| 7 | **The Janky Ref** | `reviewer` | 🔍 The Janky Ref | Internal peer review, rebuttal strategy |
+| 8 | **The Librarian** | `scout` | 📰 The Librarian | Daily paper digest, trend monitoring |
 
 ### Per-Agent Workspace
 
@@ -320,7 +319,7 @@ Each agent has unique `mentionPatterns`:
     "list": [
       {
         "id": "planner",
-        "name": "💡 Planner",
+        "name": "🧠 Designated Driver",
         "groupChat": {
           "mentionPatterns": ["@planner", "planner", "@Planner"],
           "historyLimit": 50
@@ -331,7 +330,7 @@ Each agent has unique `mentionPatterns`:
 }
 ```
 
-> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 💡 Planner agent will respond.
+> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 🧠 Designated Driver agent will respond.
 
 Messages that don't match any mention pattern are **stored for context** but don't trigger a reply — this allows agents to follow the conversation passively.
 
@@ -345,8 +344,8 @@ agent:<agentId>:<channel>:group:<groupId>
 
 | Session | Key Example |
 |---------|-------------|
-| Planner in Feishu group | `agent:planner:feishu:group:oc_xxx` |
-| Coder in Telegram group | `agent:coder:telegram:group:-1001234567890` |
+| Designated Driver in Feishu group | `agent:planner:feishu:group:oc_xxx` |
+| Dev Wooflin in Telegram group | `agent:coder:telegram:group:-1001234567890` |
 | Main in DM | `agent:main:main` |
 
 Telegram forum topics add `:topic:<threadId>` for per-topic isolation.
@@ -392,10 +391,10 @@ Agents show as `<emoji> <name>` in chat (configured via `identity.name`):
 
 | What You Type | Who Replies |
 |--------------|-------------|
-| `@planner 分解一下任务` | 🧠 Planner |
-| `@critic 评估这个 idea` | 🎯 Critic |
-| `@coder 跑一下实验` | 💻 Coder |
-| `@writer 写 related work` | ✍️ Writer |
+| `@planner 分解一下任务` | 🧠 Designated Driver |
+| `@critic 评估这个 idea` | 🎯 Tattooed Toni |
+| `@coder 跑一下实验` | 💻 Dev Wooflin |
+| `@writer 写 related work` | ✍️ Senna Many-Feather |
 
 ### Pre-built Examples
 
@@ -412,20 +411,20 @@ Agents show as `<emoji> <name>` in chat (configured via `identity.name`):
 | Workflow | Slash Command | Description |
 |----------|--------------|-------------|
 | 📋 Paper Pipeline | `/paper-pipeline` | Full 9-phase paper production with taste gates |
-| 📰 Daily Digest | `/daily-digest` | Scout-led daily paper summarization |
+| 📰 Daily Digest | `/daily-digest` | The Librarian-led daily paper summarization |
 | 💡 Brainstorm | `/brainstorm` | Rapid idea generation and evaluation |
-| 🔄 Rebuttal | `/rebuttal` | Reviewer response preparation |
+| 🔄 Rebuttal | `/rebuttal` | The Janky Ref response preparation |
 
 ### Taste Gates (品鉴节点)
 
-The Critic agent enforces quality at four critical checkpoints:
+The Tattooed Toni agent enforces quality at four critical checkpoints:
 
 | Gate | Checkpoint | Pass Criteria |
 |------|-----------|---------------|
 | 🎯 Idea Confirmation | SHARP score + Soul Questions | SHARP ≥ 18 |
 | 🎯 Method Design | Elegance + Parsimony | Parsimony ≥ 4 |
 | 🎯 First Draft | Narrative quality + Memorability | ≥ 1 clear hook |
-| 🎯 Pre-submission | Full quality judgment | Critic says "worth submitting" |
+| 🎯 Pre-submission | Full quality judgment | Tattooed Toni says "worth submitting" |
 
 ---
 
@@ -504,14 +503,14 @@ openclaw-agents/
 │   ├── openclaw.whatsapp.json        # WhatsApp config example
 │   └── openclaw.telegram.json        # Telegram config example
 └── .agents/
-    ├── planner/                      # 🧠 soul.md + agent.md + user.md
-    ├── ideator/                      # 💡 soul.md + agent.md + user.md
-    ├── critic/                       # 🎯 soul.md + agent.md + user.md
-    ├── surveyor/                     # 📚 soul.md + agent.md + user.md
-    ├── coder/                        # 💻 soul.md + agent.md + user.md
-    ├── writer/                       # ✍️ soul.md + agent.md + user.md
-    ├── reviewer/                     # 🔍 soul.md + agent.md + user.md
-    ├── scout/                        # 📰 soul.md + agent.md + user.md
+    ├── planner/                      # 🧠 Designated Driver: soul.md + agent.md + user.md
+    ├── ideator/                      # 💡 Cloud Gazers: soul.md + agent.md + user.md
+    ├── critic/                       # 🎯 Tattooed Toni: soul.md + agent.md + user.md
+    ├── surveyor/                     # 📚 Ol' Shibster: soul.md + agent.md + user.md
+    ├── coder/                        # 💻 Dev Wooflin: soul.md + agent.md + user.md
+    ├── writer/                       # ✍️ Senna Many-Feather: soul.md + agent.md + user.md
+    ├── reviewer/                     # 🔍 The Janky Ref: soul.md + agent.md + user.md
+    ├── scout/                        # 📰 The Librarian: soul.md + agent.md + user.md
     └── workflows/
         ├── paper-pipeline.md         # 📋 End-to-end paper workflow
         ├── daily-digest.md           # 📰 Daily paper digest

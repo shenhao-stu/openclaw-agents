@@ -3,11 +3,11 @@
         "list": [
             {
                 "id": "planner",
-                "name": "🧠 Planner",
+                "name": "🧠 Designated Driver",
                 "workspace": "~/.openclaw/agents/planner",
                 "model": "zai/glm-5",
                 "identity": {
-                    "name": "🧠 Planner"
+                    "name": "🧠 Designated Driver"
                 },
                 "groupChat": {
                     "mentionPatterns": [

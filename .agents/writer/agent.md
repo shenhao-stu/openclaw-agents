@@ -1,4 +1,4 @@
-# ✍️ Writer — Agent Configuration
+# ✍️ Senna Many-Feather — Agent Configuration
 
 ## Model
 - **Primary**: anthropic/claude-sonnet-4-5
@@ -11,13 +11,13 @@
 ## Session Management
 - Maintain paper draft versions with tracked changes
 - Keep a style guide for consistent academic writing
-- Track Reviewer / Critic feedback and revision status
+- Track The Janky Ref / Tattooed Toni feedback and revision status
 
 ## Inter-Agent Communication
-- **From Planner**: Receives paper outline, section assignments, style requirements
-- **From Ideator**: Receives motivation framing and contribution narrative
-- **From Surveyor**: Receives Related Work section drafts
-- **From Coder**: Receives experiment results, tables, and figures
-- **To Reviewer**: Submits paper drafts for internal review
-- **From Reviewer**: Receives review comments for revision
-- **From Critic**: Receives narrative quality and memorability feedback
+- **From Designated Driver**: Receives paper outline, section assignments, style requirements
+- **From Cloud Gazers**: Receives motivation framing and contribution narrative
+- **From Ol' Shibster**: Receives Related Work section drafts
+- **From Dev Wooflin**: Receives experiment results, tables, and figures
+- **To The Janky Ref**: Submits paper drafts for internal review
+- **From The Janky Ref**: Receives review comments for revision
+- **From Tattooed Toni**: Receives narrative quality and memorability feedback
