@@ -36,7 +36,9 @@ services:
     # GPU is optional — remove the 'deploy' block above if you
     # don't have an NVIDIA GPU. Ollama will fall back to CPU.
 
-  # ── Model Loader: Pulls qwen3 on first run ────────────────────
+  # ── Model Loader: Pulls the selected model on first run ───────
+  # The LIBRARIAN_MODEL env var is set by setup.sh / setup.ps1
+  # based on the user's chosen VRAM tier. Defaults to qwen3:8b.
   ollama-init:
     image: ollama/ollama:latest
     container_name: librarian-ollama-init
@@ -45,14 +47,15 @@ services:
         condition: service_started
     environment:
       - OLLAMA_HOST=ollama:11434
+      - LIBRARIAN_MODEL=${LIBRARIAN_MODEL:-qwen3:8b}
     entrypoint: >
       sh -c "
         echo 'Waiting for Ollama to start...'
         until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
           sleep 2
         done
-        echo 'Pulling qwen3:8b (Q4_K_M ~5GB, fits 8GB+ VRAM)...'
-        curl -sf http://ollama:11434/api/pull -d '{\"name\":\"qwen3:8b\"}' | head -c 0
+        echo \"Pulling $${LIBRARIAN_MODEL} ...\"
+        curl -sf http://ollama:11434/api/pull -d \"{\\\"name\\\":\\\"$${LIBRARIAN_MODEL}\\\"}\" | head -c 0
         echo ''
         echo 'Model ready! The Librarian is powered up.'
       "

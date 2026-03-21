@@ -3,20 +3,30 @@
 #
 # What this does:
 #   1. Checks for Docker Desktop (links to install if missing)
-#   2. Starts Ollama + OpenClaw Gateway via Docker Compose
-#   3. Pulls the Qwen3 8B model (Q4_K_M, ~5GB)
-#   4. Builds the sandbox image for isolated agent execution
-#   5. Deploys The Librarian's personality (SOUL.md) and skills
-#   6. Opens the OpenClaw dashboard in your browser
+#   2. Asks you to pick a model tier based on your GPU VRAM
+#   3. Starts Ollama + OpenClaw Gateway via Docker Compose
+#   4. Pulls the selected model
+#   5. Builds the sandbox image for isolated agent execution
+#   6. Deploys The Librarian's personality (SOUL.md) and skills
+#   7. Opens the OpenClaw dashboard in your browser
 #
 # Usage (run in PowerShell):
-#   .\setup.ps1            # GPU mode (NVIDIA)
-#   .\setup.ps1 -Cpu       # CPU-only mode
+#   .\setup.ps1                     # Interactive tier selection
+#   .\setup.ps1 -Cpu                # CPU-only mode
+#   .\setup.ps1 -Tier 3             # Skip menu, use tier 3 (12GB)
+#
+# Model Tiers:
+#   1  CPU-only   qwen3:4b    (~2.6GB)  Needs 8GB+ RAM
+#   2  8GB VRAM   qwen3:8b    (~5GB)    RTX 3060 / 4060
+#   3  12GB VRAM  qwen3:14b   (~9.3GB)  RTX 4070 / 3060-12GB
+#   4  16GB VRAM  qwen3:32b   (~20GB)   RTX 4080 / 4070Ti-16GB
+#   5  32GB VRAM  qwen3:32b   (~20GB)   RTX 4090 / A6000 (Q8 quality)
 ###############################################################################
 
 param(
     [switch]$Cpu,
-    [switch]$Help
+    [switch]$Help,
+    [ValidateRange(1,5)][int]$Tier = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,8 +45,18 @@ Write-Host "  +========================================================+" -Foreg
 Write-Host ""
 
 if ($Help) {
-    Write-Host "Usage: .\setup.ps1 [-Cpu]"
-    Write-Host "  -Cpu    Run without GPU (CPU-only inference)"
+    Write-Host "Usage: .\setup.ps1 [-Cpu] [-Tier <1-5>]"
+    Write-Host ""
+    Write-Host "Options:"
+    Write-Host "  -Cpu         Run without GPU (CPU-only inference, uses qwen3:4b)"
+    Write-Host "  -Tier <N>    Skip the interactive menu and use tier N directly"
+    Write-Host ""
+    Write-Host "Tiers:"
+    Write-Host "  1  CPU-only   qwen3:4b    (~2.6GB)  Needs 8GB+ RAM"
+    Write-Host "  2  8GB VRAM   qwen3:8b    (~5GB)    RTX 3060 / 4060"
+    Write-Host "  3  12GB VRAM  qwen3:14b   (~9.3GB)  RTX 4070 / 3060-12GB"
+    Write-Host "  4  16GB VRAM  qwen3:32b   (~20GB)   RTX 4080 / 4070Ti-16GB"
+    Write-Host "  5  32GB VRAM  qwen3:32b   (~20GB)   RTX 4090 / A6000 (Q8 quality)"
     exit 0
 }
 
@@ -44,6 +64,39 @@ function Write-Info($msg)    { Write-Host "[INFO]  $msg" -ForegroundColor Blue }
 function Write-Ok($msg)      { Write-Host "[OK]    $msg" -ForegroundColor Green }
 function Write-Warn($msg)    { Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
 function Write-Err($msg)     { Write-Host "[ERROR] $msg" -ForegroundColor Red }
+
+# -- Model tier definitions ---------------------------------------------------
+$TierModels = @{
+    1 = "qwen3:4b"
+    2 = "qwen3:8b"
+    3 = "qwen3:14b"
+    4 = "qwen3:32b"
+    5 = "qwen3:32b-q8_0"
+}
+
+$TierSizes = @{
+    1 = "~2.6GB"
+    2 = "~5GB"
+    3 = "~9.3GB"
+    4 = "~20GB"
+    5 = "~34GB"
+}
+
+$TierLabels = @{
+    1 = "CPU-only    (qwen3:4b)     - Lightweight, needs 8GB+ RAM"
+    2 = "8GB VRAM    (qwen3:8b)     - RTX 3060 / 4060"
+    3 = "12GB VRAM   (qwen3:14b)    - RTX 4070 / 3060-12GB"
+    4 = "16GB VRAM   (qwen3:32b)    - RTX 4080 / 4070Ti-16GB"
+    5 = "32GB VRAM   (qwen3:32b Q8) - RTX 4090 / A6000 (best quality)"
+}
+
+$TierNotes = @{
+    1 = "4B params - lightweight model for CPU inference. Needs 8GB+ system RAM."
+    2 = "8B params, Q4_K_M quantization - fits comfortably in 8GB VRAM."
+    3 = "14B params, Q4_K_M quantization - strong reasoning, fits 12GB VRAM."
+    4 = "32B dense params, Q4_K_M quantization - top-tier local model for 16GB VRAM."
+    5 = "32B dense params, Q8_0 quantization - maximum quality for 32GB VRAM."
+}
 
 # -- Check Docker -------------------------------------------------------------
 Write-Info "Checking for Docker..."
@@ -76,11 +129,41 @@ try {
 }
 Write-Ok "Docker Compose available."
 
+# -- Tier selection -----------------------------------------------------------
+if ($Cpu) { $Tier = 1 }
+
+if ($Tier -eq 0) {
+    Write-Host ""
+    Write-Host "  Choose your model tier:" -ForegroundColor White
+    Write-Host ""
+    for ($i = 1; $i -le 5; $i++) {
+        Write-Host "    $i)  $($TierLabels[$i])" -ForegroundColor Cyan
+    }
+    Write-Host ""
+    Write-Host "  Not sure? Run 'nvidia-smi' to check your VRAM." -ForegroundColor Yellow
+    Write-Host "  No GPU? Pick option 1 (CPU-only)." -ForegroundColor Yellow
+    Write-Host ""
+
+    do {
+        $input = Read-Host "  Enter tier [1-5]"
+        $Tier = [int]$input
+    } while ($Tier -lt 1 -or $Tier -gt 5)
+    Write-Host ""
+}
+
+$Model = $TierModels[$Tier]
+$ModelSize = $TierSizes[$Tier]
+$CpuOnly = ($Tier -eq 1)
+
+Write-Info "Selected: $($TierLabels[$Tier])"
+Write-Info "Model: $Model ($ModelSize download)"
+Write-Host ""
+
 # -- GPU Check ----------------------------------------------------------------
 $composeFiles = @("-f", "docker-compose.yml")
 
-if ($Cpu) {
-    Write-Warn "CPU-only mode selected. Inference will be slower."
+if ($CpuOnly -or $Cpu) {
+    Write-Warn "CPU-only mode. Inference will be slower but functional."
     $composeFiles += @("-f", "docker-compose.cpu.yml")
 } else {
     $hasGpu = $false
@@ -132,12 +215,24 @@ do {
 Write-Ok "Ollama is ready."
 
 # Pull model
-Write-Info "Pulling Qwen3 8B model (~5GB download, one-time operation)..."
-Write-Host "  This model uses Q4_K_M quantization - fits in 8GB+ VRAM."
+Write-Info "Pulling $Model ($ModelSize download, one-time operation)..."
+Write-Host "  $($TierNotes[$Tier])"
 Write-Host ""
-& docker exec librarian-ollama ollama pull qwen3:8b
+& docker exec librarian-ollama ollama pull $Model
 if ($LASTEXITCODE -ne 0) { Write-Err "Failed to pull model."; exit 1 }
 Write-Ok "Model downloaded and ready."
+
+# -- Update config with selected model ----------------------------------------
+Write-Info "Configuring OpenClaw to use $Model..."
+$configPath = Join-Path $scriptDir "openclaw" "config.json5"
+if (Test-Path $configPath) {
+    $content = Get-Content $configPath -Raw
+    $content = $content -replace 'name: "qwen3:[^"]*"', "name: `"$Model`""
+    Set-Content -Path $configPath -Value $content -NoNewline
+    Write-Ok "Config updated: model set to $Model"
+} else {
+    Write-Warn "Config file not found - you may need to set the model manually."
+}
 
 # -- Build Sandbox Image ------------------------------------------------------
 Write-Info "Building sandbox image for agent isolation..."
@@ -181,6 +276,8 @@ Write-Host "  ========================================================" -Foregro
 Write-Host "    The Librarian is ready!" -ForegroundColor Green
 Write-Host "  ========================================================" -ForegroundColor Green
 Write-Host ""
+Write-Host "  Model:  $Model ($($TierLabels[$Tier]))"
+Write-Host ""
 Write-Host "  Open in your browser:"
 Write-Host "    http://localhost:18789" -ForegroundColor Cyan
 Write-Host ""
@@ -189,6 +286,10 @@ Write-Host "    docker compose logs -f openclaw-gateway   # Watch OpenClaw logs"
 Write-Host "    docker compose logs -f ollama             # Watch Ollama logs"
 Write-Host "    docker compose down                       # Stop everything"
 Write-Host "    docker compose up -d                      # Restart"
+Write-Host ""
+Write-Host "  Change model tier:" -ForegroundColor Yellow
+Write-Host "    docker exec librarian-ollama ollama pull <model>"
+Write-Host "    Then update 'model.name' in openclaw/config.json5"
 Write-Host ""
 Write-Host "  Sandboxing:" -ForegroundColor Yellow
 Write-Host "    Agent tool execution runs inside isolated Docker containers."
