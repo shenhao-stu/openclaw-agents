@@ -1,583 +1,316 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/OpenClaw-Multi--Agent-blue?style=for-the-badge" alt="OpenClaw">
-  <br/>
-  <img src="https://img.shields.io/badge/version-2.2.0-brightgreen?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/agents-9-orange?style=flat-square" alt="Agents">
-  <img src="https://img.shields.io/badge/channels-feishu%20%7C%20whatsapp%20%7C%20telegram%20%7C%20discord-purple?style=flat-square" alt="Channels">
-</p>
+# The Librarian — Keeper of the Ancient Code
 
-<h1 align="center">🐾 OpenClaw Agents</h1>
+> *A Shiba dev-sage from Shibatopia, powered by local AI.*
 
-<p align="center">
-  <strong>One-command multi-agent initialization for <a href="https://docs.openclaw.ai">OpenClaw</a></strong>
-  <br/>
-  <em>Ship an entire AI agent fleet to your chat group in 60 seconds. Default model: <code>zai/glm-5</code></em>
-</p>
+The Librarian is a **one-click local AI developer assistant** built on
+[OpenClaw](https://github.com/openclaw/openclaw) +
+[Ollama](https://ollama.com) +
+[Qwen3.5](https://github.com/QwenLM/Qwen3.5). Pick a model tier to match your
+GPU (8GB–48GB VRAM) or run CPU-only. Everything runs on your machine — no
+API keys, no cloud, no data leaving your network.
 
-<p align="center">
-  <a href="#-installation">Installation</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-agents">Agents</a> •
-  <a href="#-channel-support">Channels</a> •
-  <a href="#-workflows">Workflows</a> •
-  <a href="#-customization">Customization</a> •
-  <a href="#-contributing">Contributing</a>
-</p>
+In Docker mode, agent tool execution is **sandboxed inside isolated containers**
+with no network access by default. In native mode, we recommend running inside
+a VM for isolation. Either way, The Librarian can read your code but can't
+phone home or damage your host.
+
+The Librarian's personality is rooted in the
+[Shiba Eternity](https://shiba-eternity.fandom.com/wiki/Shiba_Eternity_Wiki)
+universe: a keeper of the Ancient Lore Repositories of Shibatopia, forged
+from Hodaven magic and Mechanic technology. It writes code, reviews PRs,
+debugs Shadowcats, and guards your codebase with the vigilance of a Shiba
+guarding its home planet.
 
 ---
 
-## ✨ What Is This?
+## Quick Start
 
-**OpenClaw Agents** is a ready-to-deploy multi-agent configuration kit for [OpenClaw](https://docs.openclaw.ai). It provisions **9 specialized AI agents** as a collaborative team — complete with identities, workspace files, routing rules, and channel bindings — using a single setup command.
+### Prerequisites
 
-### What You Get
+- **NVIDIA GPU** recommended (8-48GB VRAM), or CPU-only mode
+- Disk space depends on tier (3.4GB–35GB for model weights)
 
-- 🤖 **9 pre-configured agents** with rich emoji identities for instant recognition in chat
-- 📝 **Agent self-merge** — deploys `BOOTSTRAP.md` for intelligent first-run setup
-- 🔗 **Two Deployment Modes**: 
-  - **Channel Mode**: auto-routes agents to Feishu, WhatsApp, Telegram, Discord (supports individual groups)
-  - **Local Workflow Mode**: no channel required, agents communicate directly via `agentToAgent` tool
-- 📋 **4 workflow templates** — Paper Pipeline, Daily Digest, Brainstorm, Rebuttal
-- ⚔️ **Adversarial collaboration** — Ideator↔Critic and Writer↔Reviewer creative tension
-- 🎯 **SHARP taste gates** — quality checkpoints enforced by the Critic agent
-- 🛡️ **Safe merge** — appends agents to existing config, never overwrites your main agent
-- 🎛️ **Flexible model** — unified model or per-agent customization via `--model-map`
-- 🧩 **Extensible** — add custom agents via `agents.yaml`
+> **Note:** The setup script auto-installs all dependencies (git, Docker,
+> Ollama, Node.js, etc.). You don't need to pre-install anything.
 
----
+### One-Click Install
 
-## 📦 Installation
+Copy-paste one command to get started. The script handles everything else.
 
-### For Humans
-
-Paste this into your LLM agent session (Claude Code, Antigravity, Cursor, etc.):
-
-```
-Fetch the OpenClaw Agents installation guide and set up the multi-agent system by following:
-curl -s https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
+**Windows (PowerShell — run as Administrator):**
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User'); git clone https://github.com/Testingtester2/openclaw-agents.git; cd openclaw-agents; .\setup.ps1
 ```
 
-Or just run it yourself:
-
+**Linux / macOS:**
 ```bash
-git clone https://github.com/shenhao-stu/openclaw-agents.git
+command -v git >/dev/null || { echo "Installing git..."; sudo apt-get update && sudo apt-get install -y git || sudo dnf install -y git || brew install git; }; git clone https://github.com/Testingtester2/openclaw-agents.git && cd openclaw-agents && chmod +x setup.sh && ./setup.sh
+```
+
+**Or step by step (if you already have git):**
+```bash
+git clone https://github.com/Testingtester2/openclaw-agents.git
 cd openclaw-agents
-chmod +x setup.sh
-./setup.sh
+
+# Linux / macOS
+chmod +x setup.sh && ./setup.sh
+
+# Windows (PowerShell)
+.\setup.ps1
 ```
 
-### For LLM Agents
+The setup script will:
+1. Ask how you want to install (**Docker** or **Native**)
+2. Ask you to pick a model tier based on your GPU VRAM
+3. Auto-install all dependencies (Docker/Ollama/Node.js/OpenClaw)
+4. Download the selected Qwen3.5 model
+5. Open `http://localhost:18789` in your browser
 
-> **IMPORTANT: Use `curl` to fetch this file, NOT WebFetch.** WebFetch summarizes content and loses critical details like CLI flags and config examples. Always use:
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/shenhao-stu/openclaw-agents/main/docs/installation.md
-> ```
+### Install Modes
 
-If you're an LLM Agent helping set up OpenClaw Agents, follow the [full installation guide](docs/installation.md). Here's the summary:
+| Mode | Best for | Auto-installs | Sandboxing |
+|------|----------|---------------|------------|
+| **Docker** | Easy setup & cleanup | Docker Engine (Linux) or Docker Desktop (macOS via Homebrew) | Full Docker sandbox isolation |
+| **Native** | Better GPU perf, VMs | Ollama, Node.js, OpenClaw Gateway | None (run in a VM for isolation) |
 
-#### Step 0: Prerequisites
+> **Tip:** If you're running in a VM (Multipass, WSL2, etc.), native mode gives
+> the best performance and the VM itself provides isolation.
+
+**Skip the prompts (pick mode and tier directly):**
+```bash
+# Docker mode
+./setup.sh --docker --tier 2       # Linux/macOS
+.\setup.ps1 -Docker -Tier 2        # Windows
+
+# Native mode (recommended for VMs)
+./setup.sh --native --tier 3       # Linux/macOS
+.\setup.ps1 -Native -Tier 3        # Windows
+
+# CPU-only shortcut (same as --tier 1)
+./setup.sh --cpu
+.\setup.ps1 -Cpu
+```
+
+### Manual Docker Compose
+
+If you prefer to manage Docker directly (Docker mode only):
 
 ```bash
-# Verify OpenClaw CLI is installed
-if command -v openclaw &> /dev/null; then
-    echo "OpenClaw $(openclaw --version) is installed"
-else
-    echo "Installing OpenClaw..."
-    npm install -g openclaw@latest
-    openclaw onboard --install-daemon
-fi
+# With GPU
+docker compose up -d
+
+# Without GPU (CPU-only)
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
+
+# Pull a model (pick one from the tier table below)
+docker exec librarian-ollama ollama pull qwen3.5:9b
+
+# Update config to match
+# Edit openclaw/config.json5 → model.name
 ```
 
-#### Step 1: Ask User About Deployment Mode
+Open **http://localhost:18789** when ready.
 
-Ask the user these questions:
+---
 
-1. **Which deployment mode do you want?**
-   - **Mode 1 (Channel Mode)**: Deploy agents to Feishu, Slack, Telegram, etc.
-   - **Mode 2 (Local Workflow Mode)**: Use locally via CLI workflows. Agents talk to each other via the `agentToAgent` tool. (No channel needed).
+## What's Inside
 
-*(If Mode 1: Channel Mode)*
-2. **Which channel?** → `--channel feishu|whatsapp|...`
-3. **How to assign groups?**
-   - **All in one group**: provide one `--group-id <ID>`
-   - **Separate groups per agent**: interactively paste 8 different group IDs in the script.
-4. **需要 @mention 才回复吗？** → `--require-mention true|false`
+```
+.
+├── docker-compose.yml          # Ollama + OpenClaw orchestration
+├── docker-compose.cpu.yml      # CPU-only override (no GPU)
+├── setup.sh                    # One-click setup (Linux/macOS)
+├── setup.ps1                   # One-click setup (Windows)
+└── openclaw/
+    ├── SOUL.md                 # The Librarian's personality & identity
+    ├── config.json5            # OpenClaw config (model, sandbox, tools)
+    └── skills/
+        ├── dev-review/         # Code review skill
+        │   └── SKILL.md
+        └── dev-debug/          # Debugging skill
+            └── SKILL.md
+```
 
-*(For both modes)*
-5. **Which LLM model?** (default: `zai/glm-5`) → `--model <MODEL>`
-   - Different models per agent? → `--model-map 'coder=ollama/kimi-k2.5:cloud'`
+### The Librarian's Personality (`openclaw/SOUL.md`)
 
-#### Step 2: Clone and Run Setup
+The Librarian is a full-stack developer sage from Shibatopia with:
+- **Hodaven magic** — Creative, elegant solutions and beautiful abstractions
+- **Mechanic technology** — Raw engineering power and systems thinking
+- A nose for **Shadowcats** (bugs, anti-patterns, security vulnerabilities)
+- The philosophy of **Ryoshi's Way** — decentralization, open source, clean interfaces
+- Respect for **Bark Power** — your time and compute resources are finite
+
+### Sandboxing & Isolation
+
+**Docker mode:** Agent tool execution (shell commands, file writes) runs inside
+**isolated Docker containers** that are separate from your host machine:
+
+- **No network** — sandbox containers cannot reach the internet by default
+- **Read-only root** — the sandbox filesystem is immutable
+- **Per-session isolation** — each conversation gets its own container
+- **Read-only workspace** — the agent can read your project files but writes stay in the sandbox
+
+To adjust sandbox settings, edit `openclaw/config.json5`. See the
+[OpenClaw sandboxing docs](https://docs.openclaw.ai/gateway/sandboxing) for details.
+
+**Native mode:** No Docker sandboxing is used. The agent runs directly on the
+host. For isolation, run the setup inside a VM. Tool approval policies still
+apply — dangerous commands (`rm`, `sudo`) require manual approval.
+
+> **Note:** The Ollama server runs separately from the agent (it needs GPU
+> access), but it only serves model inference — it has no access to your
+> files or shell.
+
+### Model Tiers
+
+The installer lets you pick a model based on your hardware. Models are from the
+[Qwen3.5](https://github.com/QwenLM/Qwen3.5) and
+[Qwen3-Coder](https://github.com/QwenLM/Qwen3-Coder) families, Apache 2.0 licensed,
+all with 256K native context window.
+
+| Tier | GPU Examples | Model | Params | Quant | Download | Min VRAM | Notes |
+|------|-------------|-------|--------|-------|----------|----------|-------|
+| 1 — CPU | No GPU needed | `qwen3.5:4b` | 4B | Q4_K_M | ~3.4GB | N/A (8GB+ RAM) | Fast on modern CPUs. Good for simple tasks |
+| 2 — 8GB | RTX 3060 / 4060 | `qwen3.5:9b` | 9B | Q4_K_M | ~6.6GB | 6GB | **Default tier.** Strong all-round coding |
+| 3 — 16GB | RTX 4080 / 4070Ti-16GB | `qwen3.5:27b` | 27B | Q4_K_M | ~17GB | 14GB | Big jump in reasoning & code quality |
+| 4 — 24GB | RTX 4090 | `qwen3.5:35b` | 35B | Q4_K_M | ~24GB | 20GB | Best quality dense model |
+| | | *or* `qwen3-coder:30b-a3b` | 30B MoE (3.3B active) | Q4_K_M | ~19GB | 14GB | Code-specialized, very fast |
+| 5 — 48GB | A6000 / dual GPU | `qwen3.5:35b-q8_0` | 35B | Q8_0 | ~35GB | 40GB | Max quality (Q8 quantization) |
+| | | *or* `qwen3-coder:30b-a3b-q8_0` | 30B MoE (3.3B active) | Q8_0 | ~32GB | 28GB | Max quality code-specialized |
+
+For tiers 4-5, the setup script asks you to choose between:
+- **qwen3.5** — Best all-round agentic model (reasoning, planning, multimodal)
+- **qwen3-coder** — Code-specialized MoE with only 3.3B active params (faster inference, 70% code training)
+
+Use `--coder` (Linux/macOS) or `-Coder` (Windows) to skip the prompt and pick qwen3-coder directly.
+
+**Which tier should I pick?**
+- Run `nvidia-smi` to check your VRAM
+- **No GPU?** Tier 1 (CPU) works on any machine with 8GB+ RAM
+- **Not sure?** Tier 2 (8GB) is a safe default — it runs well on most gaming GPUs
+- **Want the best local experience?** Tier 4/5 if your GPU can handle it
+
+**Switching tiers later (Docker):**
+```bash
+docker exec librarian-ollama ollama pull qwen3.5:27b
+# Edit openclaw/config.json5 → change model.name to "qwen3.5:27b"
+docker compose restart openclaw-gateway
+```
+
+**Switching tiers later (Native):**
+```bash
+ollama pull qwen3.5:27b
+# Edit ~/.openclaw/config.json5 → change model.name to "qwen3.5:27b"
+pkill -f 'openclaw serve' && openclaw serve --config ~/.openclaw/config.json5 &
+```
+
+---
+
+## Useful Commands
+
+### Docker Mode
 
 ```bash
-git clone https://github.com/shenhao-stu/openclaw-agents.git
-cd openclaw-agents
-chmod +x setup.sh
-./setup.sh --channel <CHANNEL> --group-id <GROUP_ID>
+# View logs
+docker compose logs -f openclaw-gateway
+docker compose logs -f ollama
+
+# Stop everything
+docker compose down
+
+# Restart
+docker compose up -d
+
+# Update to latest images
+docker compose pull && docker compose up -d
+
+# Switch models
+docker exec librarian-ollama ollama pull qwen3.5:4b
+# Then edit openclaw/config.json5 → model.name
 ```
 
-**Examples:**
-- **Interactive Setup** (Highly Recommended):
-  ```bash
-  ./setup.sh
-  ```
-  *(The script will elegantly ask you your mode, your channel, and let you paste your 8 group IDs one by one if desired).*
-
-- Local Workflow Mode: 
-  ```bash
-  ./setup.sh --mode local
-  ```
-- All agents in one Feishu group:
-  ```bash
-  ./setup.sh --mode channel --channel feishu --group-id oc_xxx
-  ```
-- Scripted per-agent groups:
-  ```bash
-  ./setup.sh --mode channel --channel feishu --group-id oc_default \
-    --group-map 'coder=oc_dev,scout=oc_news'
-  ```
-- Custom models + no @mention:
-  ```bash
-  ./setup.sh --channel feishu --group-id oc_xxx \
-    --model-map 'coder=ollama/kimi-k2.5:cloud' \
-    --require-mention false
-  ```
-- Agents only (no channel): `./setup.sh --skip-bindings`
-- Dry-run preview: `./setup.sh --dry-run --channel feishu --group-id oc_xxx`
-
-The script will:
-1. ✅ Verify `openclaw` CLI is installed
-2. 🤖 Create 8 sub-agents via `openclaw agents add` (auto-generates AGENTS.md, SOUL.md, USER.md)
-3. 🎨 Set emoji identities via `openclaw agents set-identity`
-4. 📝 Deploy source files + `BOOTSTRAP.md` for agent self-merge on first run
-5. 📋 Append workflow instructions to each agent's `AGENTS.md`
-6. 🔗 Configure `openclaw.json` with channel bindings
-7. ✅ Verify the entire setup
-
-#### Step 3: Verify Setup
+### Native Mode
 
 ```bash
-openclaw agents list --bindings    # Should show all 8 agents with channel bindings
-openclaw channels status --probe   # Should show channel connected
-```
+# View gateway logs
+tail -f ~/.openclaw/gateway.log
 
-#### Step 4: Start the Gateway
+# Check running models
+ollama ps
 
-```bash
-openclaw gateway
-```
+# Unload model from VRAM
+ollama stop qwen3.5:9b
 
-Then mention any agent in your chat group to test. Each agent will respond with its distinct emoji identity.
+# Stop gateway
+pkill -f 'openclaw serve'
 
-> ⚠️ **Warning**: Do not modify the 8 core agent IDs (`planner`, `ideator`, `critic`, `surveyor`, `coder`, `writer`, `reviewer`, `scout`). These are protected and referenced throughout the workflow system.
+# Stop Ollama (systemd)
+sudo systemctl stop ollama
 
----
-
-## 🏗 Architecture
-
-```
-                         ┌──────────────┐
-                         │   👤 User    │
-                         └──────┬───────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │  🐾 OpenClaw Main     │
-                    │  (Audit · Manage · Arbitrate)
-                    └───────────┬───────────┘
-                                │
-                         ┌──────▼───────┐
-                         │  🧠 Planner  │ ◄── Orchestration Hub
-                         └──────┬───────┘
-                                │
-       ┌────────────────────────┼────────────────────────┐
-       │                        │                        │
- ┌─────▼─────┐           ┌─────▼─────┐           ┌─────▼─────┐
- │ 💡Ideator │◄── ⚔️ ──►│ 🎯 Critic │           │ 📰 Scout  │
- │  Creative  │           │   Taste    │           │   Intel    │
- └─────┬─────┘           └─────┬─────┘           └───────────┘
-       │                       │
- ┌─────▼─────┐           ┌─────▼─────┐
- │ 📚Surveyor│           │ 💻 Coder  │
- │  Research  │           │ Engineer   │
- └─────┬─────┘           └─────┬─────┘
-       │                       │
-       └───────────┬───────────┘
-             ┌─────▼─────┐
-             │ ✍️ Writer │
-             │  Author    │
-             └─────┬─────┘
-                   │
-             ┌─────▼─────┐
-             │ 🔍Reviewer│ ◄── Quality Gate
-             │  Reviewer  │
-             └───────────┘
-```
-
-### Adversarial Collaboration
-
-The system is built on **productive tension** between agents:
-
-| Axis | Agents | Dynamic |
-|------|--------|---------|
-| **Creativity vs. Taste** | 💡 Ideator ↔ 🎯 Critic | Forge top-tier ideas through rigorous debate |
-| **Writing vs. Review** | ✍️ Writer ↔ 🔍 Reviewer | Polish papers through iterative feedback |
-
-- **🎯 Critic** holds ultimate **taste veto** — no idea passes Phase 2.5 without SHARP ≥ 18
-- **🔍 Reviewer** holds ultimate **quality veto** — paper cannot submit without Reviewer's Accept
-
----
-
-## 🤖 Agents
-
-### Core Fleet (🔒 Protected)
-
-| # | Agent | ID | Identity | Role |
-|---|-------|----|----------|------|
-| 0 | **Main** | `main` | 🐾 OpenClaw | System orchestrator, audit, final arbiter |
-| 1 | **Planner** | `planner` | 🧠 Planner | Task decomposition, progress tracking, coordination |
-| 2 | **Ideator** | `ideator` | 💡 Ideator | Idea generation, novelty assessment, contribution framing |
-| 3 | **Critic** | `critic` | 🎯 Critic | SHARP taste evaluation, anti-pattern detection |
-| 4 | **Surveyor** | `surveyor` | 📚 Surveyor | Literature search, research gap identification |
-| 5 | **Coder** | `coder` | 💻 Coder | Algorithm implementation, experiment execution |
-| 6 | **Writer** | `writer` | ✍️ Writer | Paper writing, LaTeX formatting |
-| 7 | **Reviewer** | `reviewer` | 🔍 Reviewer | Internal peer review, rebuttal strategy |
-| 8 | **Scout** | `scout` | 📰 Scout | Daily paper digest, trend monitoring |
-
-### Per-Agent Workspace
-
-Each agent has three core files inside `.agents/<agent_id>/`:
-
-| File | Purpose | Customize When... |
-|------|---------|-------------------|
-| `soul.md` | 🧬 Identity, personality, decision principles | You want to change agent behavior |
-| `agent.md` | ⚙️ Model, tools, sandbox, inter-agent protocols | You want to change model or tool access |
-| `user.md` | 👤 User context, research profile, preferences | You want to adapt to a different research domain |
-
----
-
-## 📡 Channel & Group Configuration
-
-> **Docs**: [Groups](https://docs.openclaw.ai/channels/groups) · [Multi-Agent Routing](https://docs.openclaw.ai/concepts/multi-agent)
-
-### Supported Channels
-
-| Channel | Group ID Format | Example | Docs |
-|---------|----------------|---------|------|
-| **Feishu** (飞书) | `oc_xxxxxxxxx` | `oc_b1c331592eaa36d06a7e5df05d08a890` | [Feishu docs](https://docs.openclaw.ai/channels/feishu) |
-| **WhatsApp** | `xxxxx@g.us` | `120363999999999999@g.us` | [WhatsApp docs](https://docs.openclaw.ai/channels/whatsapp) |
-| **Telegram** | Negative integer | `-1001234567890` | [Telegram docs](https://docs.openclaw.ai/channels/telegram) |
-| **Discord** | Guild ID | `1234567890` | [Discord docs](https://docs.openclaw.ai/channels/discord) |
-| **Slack** | Team + Channel | `T0123/C0123` | [Slack docs](https://docs.openclaw.ai/channels/slack) |
-
-### Group Policy
-
-OpenClaw uses a three-tier access control model for groups:
-
-| Policy | Behavior | Use Case |
-|--------|----------|----------|
-| `"open"` | All groups allowed (**default**) | Personal servers, trusted teams |
-| `"allowlist"` | Only listed groups allowed | Multi-tenant / production |
-| `"disabled"` | All group messages dropped | DM-only bots |
-
-```jsonc
-{
-  "channels": {
-    "feishu": {
-      "groupPolicy": "open",                    // ← all groups allowed
-      "groups": {
-        "oc_YOUR_GROUP_ID": {
-          "requireMention": true               // ← must @mention to trigger
-        }
-      }
-    }
-  }
-}
-```
-
-### Mention Gating
-
-You can choose whether agents require `@mention` to respond in groups:
-
-| Setting | Behavior |
-|---------|----------|
-| `requireMention: true` (**default**) | Agents only respond when @mentioned. Messages without @ are stored for context but don't trigger a reply. |
-| `requireMention: false` | Agents auto-respond to all group messages. No @mention needed. |
-
-```bash
-# Default: require @mention
-./setup.sh --channel feishu --group-id oc_xxx
-
-# Auto-respond without @mention
-./setup.sh --require-mention false --channel feishu --group-id oc_xxx
-```
-
-Each agent has unique `mentionPatterns`:
-
-```jsonc
-{
-  "agents": {
-    "list": [
-      {
-        "id": "planner",
-        "name": "💡 Planner",
-        "groupChat": {
-          "mentionPatterns": ["@planner", "planner", "@Planner"],
-          "historyLimit": 50
-        }
-      }
-    ]
-  }
-}
-```
-
-> **How it works**: Type `@planner 请分解这个任务` in the group, and only the 💡 Planner agent will respond.
-
-Messages that don't match any mention pattern are **stored for context** but don't trigger a reply — this allows agents to follow the conversation passively.
-
-### Session Keys
-
-Each agent gets an isolated session per group:
-
-```
-agent:<agentId>:<channel>:group:<groupId>
-```
-
-| Session | Key Example |
-|---------|-------------|
-| Planner in Feishu group | `agent:planner:feishu:group:oc_xxx` |
-| Coder in Telegram group | `agent:coder:telegram:group:-1001234567890` |
-| Main in DM | `agent:main:main` |
-
-Telegram forum topics add `:topic:<threadId>` for per-topic isolation.
-
-### Workspace & Tool Restrictions
-
-Each sub-agent has its **own independent workspace** (no Docker sandbox). The setup script deploys source files that the agent merges on first run:
-
-| Deployed File | Purpose |
-|---------------|---------|
-| `BOOTSTRAP.md` | First-run instructions — agent reads this, merges source files, then deletes it |
-| `_soul_source.md` | Agent-specific identity and capabilities |
-| `_soul_raw.md` | Generic behavior guidelines (from `SOUL_raw.md`) |
-| `_user_source.md` | Agent-specific user context |
-| `_user_raw.md` | User template (from `USER.md`) |
-| `_agent_source.md` | Agent config with model settings |
-| `AGENTS.md` | Auto-generated by OpenClaw + workflow instructions appended |
-
-You can restrict tools per group or per sender:
-
-```jsonc
-{
-  "channels": {
-    "telegram": {
-      "groups": {
-        "-1001234567890": {
-          "tools": {
-            "deny": ["exec", "write"]                   // block risky tools
-          },
-          "toolsBySender": {
-            "id:123456789": { "alsoAllow": ["exec"] }   // override for trusted user
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Display Labels
-
-Agents show as `<emoji> <name>` in chat (configured via `identity.name`):
-
-| What You Type | Who Replies |
-|--------------|-------------|
-| `@planner 分解一下任务` | 🧠 Planner |
-| `@critic 评估这个 idea` | 🎯 Critic |
-| `@coder 跑一下实验` | 💻 Coder |
-| `@writer 写 related work` | ✍️ Writer |
-
-### Pre-built Examples
-
-| Channel | Config | Key Features |
-|---------|--------|-------------|
-| Feishu | [`openclaw.feishu.json`](examples/openclaw.feishu.json) | All 9 agents, open policy, mention gating |
-| WhatsApp | [`openclaw.whatsapp.json`](examples/openclaw.whatsapp.json) | DM pairing, open policy |
-| Telegram | [`openclaw.telegram.json`](examples/openclaw.telegram.json) | Tool restrictions per group |
-
----
-
-## 📋 Workflows
-
-| Workflow | Slash Command | Description |
-|----------|--------------|-------------|
-| 📋 Paper Pipeline | `/paper-pipeline` | Full 9-phase paper production with taste gates |
-| 📰 Daily Digest | `/daily-digest` | Scout-led daily paper summarization |
-| 💡 Brainstorm | `/brainstorm` | Rapid idea generation and evaluation |
-| 🔄 Rebuttal | `/rebuttal` | Reviewer response preparation |
-
-### Taste Gates (品鉴节点)
-
-The Critic agent enforces quality at four critical checkpoints:
-
-| Gate | Checkpoint | Pass Criteria |
-|------|-----------|---------------|
-| 🎯 Idea Confirmation | SHARP score + Soul Questions | SHARP ≥ 18 |
-| 🎯 Method Design | Elegance + Parsimony | Parsimony ≥ 4 |
-| 🎯 First Draft | Narrative quality + Memorability | ≥ 1 clear hook |
-| 🎯 Pre-submission | Full quality judgment | Critic says "worth submitting" |
-
----
-
-## 🧩 Customization
-
-### Model Configuration
-
-The default model is **`zai/glm-5`**. You have three options:
-
-#### Option A: Same model for all agents (default)
-
-```bash
-# Uses zai/glm-5 for all 8 sub-agents
-./setup.sh --channel feishu --group-id oc_xxx
-```
-
-#### Option B: Change the unified model
-
-```bash
-# All agents use the same custom model
-./setup.sh --model ollama/kimi-k2.5:cloud --channel feishu --group-id oc_xxx
-```
-
-#### Option C: Different models per agent
-
-```bash
-# Default is zai/glm-5, but coder and writer get different models
-./setup.sh \
-  --model zai/glm-5 \
-  --model-map 'coder=ollama/kimi-k2.5:cloud,writer=zai/glm-4.7,scout=zai/glm-4.7-flash' \
-  --channel feishu --group-id oc_xxx
-```
-
-`--model-map` takes priority over `--model` for specified agents. Agents not in the map use the `--model` default.
-
-### Adding Custom Agents
-
-1. Add the agent definition to `agents.yaml`:
-
-```yaml
-agents:
-  # ... existing agents ...
-  - id: "math-prover"
-    name: "🔢 Math Prover"
-    emoji: "🔢"
-    role: "Theorem proving, convergence analysis"
-    model: "zai/glm-5"
-    protected: false
-    workspace: ".agents/math-prover"
-```
-
-2. Re-run `./setup.sh` or add manually:
-
-```bash
-openclaw agents add math-prover --model zai/glm-5 --workspace .agents/math-prover
-openclaw agents set-identity --agent math-prover --name "🔢 Math Prover"
+# Switch models
+ollama pull qwen3.5:27b
+# Then edit ~/.openclaw/config.json5 → model.name
 ```
 
 ---
 
-## 📁 Repository Structure
+## Hardware Guide
 
-```
-openclaw-agents/
-├── setup.sh                          # 🚀 One-command setup script
-├── agents.yaml                       # 📋 Agent manifest (source of truth)
-├── soul.md                           # 🐾 Main Agent definition
-├── README.md                         # 📖 This file
-├── LICENSE                           # MIT License
-├── CONTRIBUTING.md                   # Contribution guidelines
-├── CHANGELOG.md                      # Version history
-├── docs/
-│   └── installation.md               # 📖 Full installation guide
-├── examples/
-│   ├── openclaw.feishu.json          # Feishu config example
-│   ├── openclaw.whatsapp.json        # WhatsApp config example
-│   └── openclaw.telegram.json        # Telegram config example
-└── .agents/
-    ├── planner/                      # 🧠 soul.md + agent.md + user.md
-    ├── ideator/                      # 💡 soul.md + agent.md + user.md
-    ├── critic/                       # 🎯 soul.md + agent.md + user.md
-    ├── surveyor/                     # 📚 soul.md + agent.md + user.md
-    ├── coder/                        # 💻 soul.md + agent.md + user.md
-    ├── writer/                       # ✍️ soul.md + agent.md + user.md
-    ├── reviewer/                     # 🔍 soul.md + agent.md + user.md
-    ├── scout/                        # 📰 soul.md + agent.md + user.md
-    └── workflows/
-        ├── paper-pipeline.md         # 📋 End-to-end paper workflow
-        ├── daily-digest.md           # 📰 Daily paper digest
-        ├── brainstorm.md             # 💡 Idea brainstorming
-        └── rebuttal.md               # 🔄 Rebuttal preparation
-```
+See the **Model Tiers** table above for full details. Quick summary:
+
+| Your GPU | VRAM | Run `./setup.sh --tier` | Experience |
+|----------|------|-------------------------|------------|
+| No GPU | — | `--tier 1` or `--cpu` | Usable (slower, CPU inference) |
+| RTX 3060 / 4060 | 8GB | `--tier 2` | Good (9B model, fast) |
+| RTX 4080 / 4070Ti-16GB | 16GB | `--tier 3` | Great (27B model, strong reasoning) |
+| RTX 4090 | 24GB | `--tier 4` | Excellent (35B model, best dense) |
+| A6000 / dual GPU | 48GB+ | `--tier 5` | Best quality (35B Q8 quantization) |
+
+Speed depends on model size, context length, and system configuration. Larger
+models are smarter but generate tokens more slowly on the same hardware.
 
 ---
 
-## 🔧 CLI Reference
+## Security
 
-### Setup Script Flags
+### Docker Mode
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--mode` | Deployment config mode (`channel` or `local`) | Interactive |
-| `--channel` | Channel type (feishu/whatsapp/telegram/discord/slack) | Interactive prompt |
-| `--group-id` | Default group ID for all agents | Interactive prompt |
-| `--group-map` | Per-agent group overrides (`id=group_id,...`) | None |
-| `--model` | Default LLM model for all agents | `zai/glm-5` |
-| `--model-map` | Per-agent model overrides (`id=model,...`) | None |
-| `--require-mention` | Require @mention to respond (`true`/`false`) | `true` |
-| `--skip-bindings` | Skip channel binding setup | `false` |
-| `--dry-run` | Preview commands without executing | `false` |
-| `-h, --help` | Show help | — |
+Docker mode follows OpenClaw's full security recommendations:
 
-> 🛡️ **Safe Merge**: The setup script **appends** sub-agents to your existing `openclaw.json`. Main agent is implicit (uses `agents.defaults`). No sandbox — each agent has its own workspace. A backup is created automatically.
+1. **Sandboxed agent execution** — tool calls run in isolated containers
+2. **No network in sandbox** — prevents data exfiltration
+3. **Read-only root** — sandbox filesystem is immutable
+4. **Dropped capabilities** — `NET_RAW` and `NET_ADMIN` dropped from gateway
+5. **No-new-privileges** — prevents privilege escalation in gateway
+6. **Non-root user** — gateway runs as `node` (uid 1000)
 
-### OpenClaw Commands
+### Native Mode
 
-```bash
-openclaw agents list --bindings       # List all agents and bindings
-openclaw agents add <id>              # Add a new agent
-openclaw agents set-identity          # Set agent display name
-openclaw channels status --probe      # Check channel connectivity
-openclaw gateway                      # Start the gateway
-openclaw gateway restart              # Restart after config changes
-```
+Native mode has lighter security controls:
+
+1. **Tool approval policies** — dangerous commands (`rm`, `sudo`, writes to `/etc`, `/usr`) require manual approval
+2. **No Docker sandboxing** — agent commands run directly on the host
+3. **Recommended: run in a VM** — use Multipass, WSL2, or a cloud VM for host isolation
+
+For more, see the [OpenClaw security docs](https://docs.openclaw.ai/gateway/sandboxing).
 
 ---
 
-## 🤝 Contributing
+## Lore
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+*From the Ancient Lore Repositories of Shibatopia:*
 
-- 🐛 **Bug Reports** — Open a GitHub Issue
-- 💡 **New Agents** — Submit a PR with agent files + `agents.yaml` update
-- 📋 **Workflows** — Share your research process templates
-- 📖 **Docs** — Improve guides and examples
+> When the SS VIRGIL tore through the Rakiya and crash-landed on Shibanu,
+> everything changed. While Ryoshi rose as the hero of decentralization,
+> The Librarian chose a quieter path — keeper of knowledge, guardian of
+> code. Every bug squashed is a Shadowcat banished. Every clean architecture
+> is a ward against FUD. Every well-tested function is a shield for the pack.
 
----
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=shenhao-stu/openclaw-agents&type=Date)](https://www.star-history.com/#shenhao-stu/openclaw-agents&Date)
+Based on the [Shiba Eternity](https://shiba-eternity.fandom.com/wiki/Shiba_Eternity_Wiki)
+universe by Shytoshi Kusama and PlaySide Studios.
 
 ---
 
-## 📄 License
+## License
 
-[MIT](LICENSE) — Use freely, modify openly, share generously.
-
----
-
-<p align="center">
-  <strong>Built with ❤️ for the AI research community</strong>
-  <br/>
-  <sub>Powered by <a href="https://docs.openclaw.ai">OpenClaw</a> 🦞</sub>
-</p>
+MIT

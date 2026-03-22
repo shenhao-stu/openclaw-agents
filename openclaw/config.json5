@@ -1,0 +1,67 @@
+{
+  // ── The Librarian — OpenClaw Configuration ──────────────────────
+  //
+  // Model: Qwen3.5 9B via local Ollama
+  // Sandbox: Docker-based isolation for all agent tool execution
+  // Gateway: LAN-accessible for browser dashboard
+
+  // Model provider configuration
+  model: {
+    provider: "ollama",
+    name: "qwen3.5:9b",
+    ollama: {
+      baseUrl: "http://ollama:11434"
+    }
+  },
+
+  // Gateway settings
+  gateway: {
+    bind: "lan"
+  },
+
+  // Agent sandboxing — isolate tool execution from the host
+  agents: {
+    defaults: {
+      sandbox: {
+        // Sandbox every session (not just non-main)
+        mode: "all",
+
+        // One container per session — full isolation between conversations
+        scope: "session",
+
+        // Read-only workspace access — agent can read project files
+        // but tool execution (shell, write) happens inside the sandbox
+        workspaceAccess: "ro",
+
+        docker: {
+          // Use the common sandbox image with dev tooling
+          image: "openclaw-sandbox:bookworm-slim",
+
+          // No network by default — agent cannot reach the internet
+          // Override to "bridge" if your agent needs to fetch packages
+          network: "none",
+
+          // Read-only root filesystem for extra hardening
+          readOnlyRoot: true,
+
+          // Mount project source read-only into the sandbox
+          binds: [
+            // Add your project directory here if needed:
+            // "/home/user/myproject:/source:ro"
+          ]
+        }
+      }
+    }
+  },
+
+  // Tool approval policies
+  tools: {
+    // Tools that always require manual approval
+    requireApproval: [
+      "shell:rm",
+      "shell:sudo",
+      "write:/etc/*",
+      "write:/usr/*"
+    ]
+  }
+}

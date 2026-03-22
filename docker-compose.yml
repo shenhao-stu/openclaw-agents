@@ -1,0 +1,120 @@
+###############################################################################
+# The Librarian — One-Click Dev Agent Setup
+# Powered by OpenClaw + Ollama + Qwen3.5
+#
+# Usage:
+#   docker compose up -d          # Start everything
+#   docker compose logs -f openclaw-gateway  # Watch OpenClaw logs
+#   docker compose down           # Stop everything
+#
+# Then open http://localhost:18789 in your browser.
+###############################################################################
+
+services:
+  # ── Ollama: Local LLM Server ──────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: librarian-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # GPU is optional — remove the 'deploy' block above if you
+    # don't have an NVIDIA GPU. Ollama will fall back to CPU.
+
+  # ── Model Loader: Pulls the selected model on first run ───────
+  # The LIBRARIAN_MODEL env var is set by setup.sh / setup.ps1
+  # based on the user's chosen VRAM tier. Defaults to qwen3.5:9b.
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: librarian-ollama-init
+    depends_on:
+      ollama:
+        condition: service_started
+    environment:
+      - OLLAMA_HOST=ollama:11434
+      - LIBRARIAN_MODEL=${LIBRARIAN_MODEL:-qwen3.5:9b}
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to start...'
+        until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
+          sleep 2
+        done
+        echo \"Pulling $${LIBRARIAN_MODEL} ...\"
+        curl -sf http://ollama:11434/api/pull -d \"{\\\"name\\\":\\\"$${LIBRARIAN_MODEL}\\\"}\" | head -c 0
+        echo ''
+        echo 'Model ready! The Librarian is powered up.'
+      "
+    restart: "no"
+
+  # ── OpenClaw Gateway: The Librarian's Workstation ─────────────
+  openclaw-gateway:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: librarian-openclaw
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "18789:18789"
+    volumes:
+      - openclaw-config:/home/node/.openclaw
+      - openclaw-workspace:/home/node/.openclaw/workspace
+      # Mount agent personality and config (read-only)
+      - ./openclaw/SOUL.md:/home/node/.openclaw/SOUL.md:ro
+      - ./openclaw/config.json5:/home/node/.openclaw/config.json5:ro
+      - ./openclaw/skills:/home/node/.openclaw/skills:ro
+      # Docker socket for agent sandboxing
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_SANDBOX=1
+      # Point at the local Ollama instance for model inference
+      - OLLAMA_BASE_URL=http://ollama:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    # Security hardening for the gateway container
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=512m
+      - /home/node/.npm:size=128m
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    # Resource limits — adjust to your machine
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "2.0"
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
+    name: librarian-ollama-models
+  openclaw-config:
+    name: librarian-openclaw-config
+  openclaw-workspace:
+    name: librarian-openclaw-workspace

@@ -1,0 +1,14 @@
+###############################################################################
+# The Librarian — CPU-Only Override
+#
+# Use this if you don't have an NVIDIA GPU:
+#   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
+#
+# Or rename this to docker-compose.override.yml for automatic use.
+###############################################################################
+
+services:
+  ollama:
+    deploy: {}
+    # Overrides the GPU reservation from the main compose file.
+    # Ollama will run on CPU — slower but works on any machine.
